@@ -14,6 +14,9 @@ function setupCalendar() {
     initialView: "dayGridMonth",
     height: "auto",
     eventSources: ["/api/calendar-events"],
+    eventClassNames(info) {
+      return [driverColorClass(info.event.extendedProps.drivers)];
+    },
     eventClick(info) {
       openDelivery(info.event.id);
     }
@@ -61,6 +64,19 @@ function selectedCompanies(value) {
 function isChecklistItemActive(item, companiesDelivering) {
   if (!["sb_labels_printed", "sb_labels_applied"].includes(item.item_key)) return true;
   return selectedCompanies(companiesDelivering).has("SB");
+}
+
+function driverColorClass(driver) {
+  const name = String(driver || "").trim().toLowerCase();
+
+  if (!name) return "driver-unassigned";
+
+  let hash = 0;
+  for (const char of name) {
+    hash = (hash * 31 + char.charCodeAt(0)) % 9973;
+  }
+
+  return `driver-color-${hash % 5}`;
 }
 
 function hasSelectedCheckbox(name) {
@@ -223,7 +239,7 @@ function renderWeekDelivery(delivery) {
   ].filter(Boolean);
 
   return `
-    <button class="week-delivery" type="button" onclick="openDelivery(${delivery.id})">
+    <button class="week-delivery ${driverColorClass(delivery.drivers)}" type="button" onclick="openDelivery(${delivery.id})">
       <span class="week-delivery-time">${escapeHtml(logistics.join(" | ") || "Time TBD")}</span>
       <strong>${escapeHtml(delivery.store)}</strong>
       <span>${escapeHtml(delivery.dispensary_location || delivery.companies_delivering || "")}</span>
@@ -259,12 +275,12 @@ function renderDeliveryList() {
       );
 
       return `
-        <div class="delivery-row" onclick="openDelivery(${delivery.id})">
+        <div class="delivery-row ${driverColorClass(delivery.drivers)}" onclick="openDelivery(${delivery.id})">
           <div class="delivery-row-main">
             <div>${delivery.delivery_date || ""}</div>
             <div><strong>${escapeHtml(delivery.store)}</strong><br>${escapeHtml(delivery.dispensary_location || delivery.dispensary_address || "")}</div>
-            <div>${escapeHtml(delivery.delivery_time || "")}</div>
-            <div>${escapeHtml(delivery.companies_delivering || "")}</div>
+            <div>${escapeHtml([delivery.pickup_time ? `PU ${delivery.pickup_time}` : "", delivery.delivery_time ? `DEL ${delivery.delivery_time}` : ""].filter(Boolean).join(" / "))}</div>
+            <div>${escapeHtml([delivery.delivery_company, delivery.drivers ? `Driver: ${delivery.drivers}` : "", delivery.van ? `Van: ${delivery.van}` : ""].filter(Boolean).join(" / "))}</div>
             <div><span class="badge ${badgeClass}">${escapeHtml(delivery.status || "Not Started")}</span></div>
           </div>
           ${checklist}
