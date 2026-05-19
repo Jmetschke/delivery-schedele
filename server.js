@@ -478,7 +478,8 @@ app.post("/api/deliveries", async (req, res) => {
       needs_display,
       date_order_received,
       delivery_date,
-      delivery_time
+      delivery_time,
+      pickup_time
     } = req.body;
 
     if (!store || !delivery_date) {
@@ -490,9 +491,9 @@ app.post("/api/deliveries", async (req, res) => {
         INSERT INTO deliveries (
           store, dispensary_location, dispensary_address, companies_delivering,
           border_store, needs_display, date_order_received, delivery_date,
-          delivery_time, status
+          delivery_time, pickup_time, status
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Not Started')
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Not Started')
       `,
       [
         store,
@@ -503,7 +504,8 @@ app.post("/api/deliveries", async (req, res) => {
         needs_display,
         date_order_received,
         delivery_date,
-        delivery_time
+        delivery_time,
+        pickup_time
       ]
     );
 

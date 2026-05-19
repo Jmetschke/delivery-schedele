@@ -71,6 +71,7 @@ async function createDelivery(event) {
   const payload = {
     delivery_date: document.getElementById("newDeliveryDate").value,
     delivery_time: document.getElementById("newDeliveryTime").value,
+    pickup_time: document.getElementById("newPickupTime").value,
     store: document.getElementById("newStore").value.trim(),
     dispensary_location: document.getElementById("newDispensaryLocation").value.trim(),
     dispensary_address: document.getElementById("newDispensaryAddress").value.trim(),
@@ -295,6 +296,7 @@ async function openDelivery(id) {
   document.getElementById("dateOrderReceived").value = d.date_order_received || "";
   document.getElementById("deliveryDate").value = d.delivery_date || "";
   document.getElementById("deliveryTime").value = d.delivery_time || "";
+  document.getElementById("pickupTime").value = d.pickup_time || "";
   document.getElementById("status").value = d.status || "Not Started";
   document.getElementById("notes").value = d.notes || "";
 
@@ -365,6 +367,7 @@ async function saveDelivery(event) {
     date_order_received: document.getElementById("dateOrderReceived").value,
     delivery_date: document.getElementById("deliveryDate").value,
     delivery_time: document.getElementById("deliveryTime").value,
+    pickup_time: document.getElementById("pickupTime").value,
     status: document.getElementById("status").value,
     notes: document.getElementById("notes").value
   };
