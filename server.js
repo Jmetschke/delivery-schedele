@@ -210,7 +210,7 @@ async function insertOrUpdateDelivery(delivery, checklistItems) {
       `
         UPDATE deliveries
         SET dispensary_location = ?, dispensary_address = ?, companies_delivering = ?,
-            border_store = ?, needs_display = ?, date_order_received = ?,
+            delivery_company = ?, border_store = ?, needs_display = ?, date_order_received = ?,
             product_type = ?, delivery_type = ?, pickup_time = ?, van = ?,
             source_sheet = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
@@ -219,6 +219,7 @@ async function insertOrUpdateDelivery(delivery, checklistItems) {
         delivery.dispensary_location,
         delivery.dispensary_address,
         delivery.companies_delivering,
+        delivery.delivery_company,
         delivery.border_store,
         delivery.needs_display,
         delivery.date_order_received,
@@ -236,17 +237,18 @@ async function insertOrUpdateDelivery(delivery, checklistItems) {
       `
         INSERT INTO deliveries (
           store, dispensary_location, dispensary_address, companies_delivering,
-          border_store, needs_display, date_order_received,
+          delivery_company, border_store, needs_display, date_order_received,
           product_type, delivery_type, delivery_date, pickup_time,
           delivery_time, drivers, van, source_sheet
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         delivery.store,
         delivery.dispensary_location,
         delivery.dispensary_address,
         delivery.companies_delivering,
+        delivery.delivery_company,
         delivery.border_store,
         delivery.needs_display,
         delivery.date_order_received,
@@ -422,19 +424,37 @@ app.get("/api/calendar-events", async (req, res) => {
   try {
     const rows = await all(
       `
-        SELECT id, store, delivery_date, delivery_time, companies_delivering, status
+        SELECT id, store, delivery_date, pickup_time, delivery_time,
+               delivery_company, drivers, van, companies_delivering, status
         FROM deliveries
         WHERE delivery_date IS NOT NULL AND delivery_date != ''
         ORDER BY delivery_date, delivery_time
       `
     );
 
+    function calendarTitle(row) {
+      const parts = [
+        row.pickup_time ? `PU ${row.pickup_time}` : "",
+        row.delivery_time ? `DEL ${row.delivery_time}` : "",
+        row.store,
+        row.delivery_company ? `Company: ${row.delivery_company}` : "",
+        row.drivers ? `Driver: ${row.drivers}` : "",
+        row.van ? `Van: ${row.van}` : ""
+      ].filter(Boolean);
+
+      return parts.join(" | ");
+    }
+
     const events = rows.map((row) => ({
       id: String(row.id),
-      title: `${row.delivery_time || ""} ${row.store} - ${row.companies_delivering || ""}`.trim(),
+      title: calendarTitle(row),
       start: row.delivery_date,
       extendedProps: {
+        pickup_time: row.pickup_time,
         delivery_time: row.delivery_time,
+        delivery_company: row.delivery_company,
+        drivers: row.drivers,
+        van: row.van,
         companies_delivering: row.companies_delivering,
         status: row.status
       }
@@ -474,6 +494,9 @@ app.post("/api/deliveries", async (req, res) => {
       dispensary_location,
       dispensary_address,
       companies_delivering,
+      delivery_company,
+      drivers,
+      van,
       border_store,
       needs_display,
       date_order_received,
@@ -490,16 +513,19 @@ app.post("/api/deliveries", async (req, res) => {
       `
         INSERT INTO deliveries (
           store, dispensary_location, dispensary_address, companies_delivering,
-          border_store, needs_display, date_order_received, delivery_date,
-          delivery_time, pickup_time, status
+          delivery_company, drivers, van, border_store, needs_display,
+          date_order_received, delivery_date, delivery_time, pickup_time, status
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Not Started')
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Not Started')
       `,
       [
         store,
         dispensary_location,
         dispensary_address,
         companies_delivering,
+        delivery_company,
+        drivers,
+        van,
         border_store,
         needs_display,
         date_order_received,
@@ -533,6 +559,7 @@ app.patch("/api/deliveries/:id", async (req, res) => {
       dispensary_location,
       dispensary_address,
       companies_delivering,
+      delivery_company,
       border_store,
       needs_display,
       date_order_received,
@@ -551,7 +578,8 @@ app.patch("/api/deliveries/:id", async (req, res) => {
       `
         UPDATE deliveries
         SET store = ?, dispensary_location = ?, dispensary_address = ?,
-            companies_delivering = ?, border_store = ?, needs_display = ?, date_order_received = ?,
+            companies_delivering = ?, delivery_company = ?, border_store = ?,
+            needs_display = ?, date_order_received = ?,
             product_type = ?, delivery_type = ?, delivery_date = ?, pickup_time = ?,
             delivery_time = ?, drivers = ?, van = ?, status = ?, notes = ?,
             updated_at = CURRENT_TIMESTAMP
@@ -562,6 +590,7 @@ app.patch("/api/deliveries/:id", async (req, res) => {
         dispensary_location,
         dispensary_address,
         companies_delivering,
+        delivery_company,
         border_store,
         needs_display,
         date_order_received,

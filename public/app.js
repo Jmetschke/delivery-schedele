@@ -72,6 +72,9 @@ async function createDelivery(event) {
     delivery_date: document.getElementById("newDeliveryDate").value,
     delivery_time: document.getElementById("newDeliveryTime").value,
     pickup_time: document.getElementById("newPickupTime").value,
+    delivery_company: document.getElementById("newDeliveryCompany").value.trim(),
+    drivers: document.getElementById("newDeliveryDriver").value.trim(),
+    van: document.getElementById("newDeliveryVan").value.trim(),
     store: document.getElementById("newStore").value.trim(),
     dispensary_location: document.getElementById("newDispensaryLocation").value.trim(),
     dispensary_address: document.getElementById("newDispensaryAddress").value.trim(),
@@ -201,9 +204,17 @@ function renderWeekDelivery(delivery) {
         ? "in-progress"
         : "";
 
+  const logistics = [
+    delivery.pickup_time ? `PU ${delivery.pickup_time}` : "",
+    delivery.delivery_time ? `DEL ${delivery.delivery_time}` : "",
+    delivery.delivery_company,
+    delivery.drivers ? `Driver: ${delivery.drivers}` : "",
+    delivery.van ? `Van: ${delivery.van}` : ""
+  ].filter(Boolean);
+
   return `
     <button class="week-delivery" type="button" onclick="openDelivery(${delivery.id})">
-      <span class="week-delivery-time">${escapeHtml(delivery.delivery_time || "Time TBD")}</span>
+      <span class="week-delivery-time">${escapeHtml(logistics.join(" | ") || "Time TBD")}</span>
       <strong>${escapeHtml(delivery.store)}</strong>
       <span>${escapeHtml(delivery.dispensary_location || delivery.companies_delivering || "")}</span>
       <span class="badge ${badgeClass}">${escapeHtml(delivery.status || "Not Started")}</span>
@@ -297,6 +308,9 @@ async function openDelivery(id) {
   document.getElementById("deliveryDate").value = d.delivery_date || "";
   document.getElementById("deliveryTime").value = d.delivery_time || "";
   document.getElementById("pickupTime").value = d.pickup_time || "";
+  document.getElementById("deliveryCompany").value = d.delivery_company || "";
+  document.getElementById("deliveryDriver").value = d.drivers || "";
+  document.getElementById("deliveryVan").value = d.van || "";
   document.getElementById("status").value = d.status || "Not Started";
   document.getElementById("notes").value = d.notes || "";
 
@@ -368,6 +382,9 @@ async function saveDelivery(event) {
     delivery_date: document.getElementById("deliveryDate").value,
     delivery_time: document.getElementById("deliveryTime").value,
     pickup_time: document.getElementById("pickupTime").value,
+    delivery_company: document.getElementById("deliveryCompany").value.trim(),
+    drivers: document.getElementById("deliveryDriver").value.trim(),
+    van: document.getElementById("deliveryVan").value.trim(),
     status: document.getElementById("status").value,
     notes: document.getElementById("notes").value
   };

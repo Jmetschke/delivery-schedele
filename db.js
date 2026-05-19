@@ -18,6 +18,7 @@ db.serialize(() => {
       dispensary_location TEXT,
       dispensary_address TEXT,
       companies_delivering TEXT,
+      delivery_company TEXT,
       border_store TEXT,
       needs_display TEXT,
       date_order_received TEXT,
@@ -47,7 +48,8 @@ db.serialize(() => {
     const additions = [
       ["dispensary_location", "TEXT"],
       ["dispensary_address", "TEXT"],
-      ["companies_delivering", "TEXT"]
+      ["companies_delivering", "TEXT"],
+      ["delivery_company", "TEXT"]
     ];
 
     additions.forEach(([name, type]) => {
