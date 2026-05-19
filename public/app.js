@@ -104,6 +104,7 @@ async function loadDeliveries() {
   const response = await fetch("/api/deliveries");
   deliveries = await response.json();
   renderSummary();
+  renderWeekSchedule();
   renderDeliveryList();
 }
 
@@ -115,6 +116,97 @@ function renderSummary() {
   document.getElementById("completedCount").textContent = deliveries.filter(
     (d) => d.status === "Completed"
   ).length;
+}
+
+function startOfCurrentWeek() {
+  const today = new Date();
+  const start = new Date(today);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(today.getDate() - today.getDay());
+  return start;
+}
+
+function addDays(date, days) {
+  const next = new Date(date);
+  next.setDate(date.getDate() + days);
+  return next;
+}
+
+function isoDate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatWeekDate(date, options) {
+  return date.toLocaleDateString(undefined, options);
+}
+
+function renderWeekSchedule() {
+  const schedule = document.getElementById("weekSchedule");
+  const range = document.getElementById("weekRange");
+  const count = document.getElementById("weekCount");
+  const start = startOfCurrentWeek();
+  const days = Array.from({ length: 7 }, (_, index) => addDays(start, index));
+  const end = days[6];
+  const todayIso = isoDate(new Date());
+  const weekDeliveries = deliveries.filter((delivery) =>
+    days.some((day) => delivery.delivery_date === isoDate(day))
+  );
+
+  range.textContent = `${formatWeekDate(start, {
+    month: "short",
+    day: "numeric"
+  })} - ${formatWeekDate(end, { month: "short", day: "numeric" })}`;
+  count.textContent = `${weekDeliveries.length} ${
+    weekDeliveries.length === 1 ? "delivery" : "deliveries"
+  }`;
+
+  schedule.innerHTML = days
+    .map((day) => {
+      const dayIso = isoDate(day);
+      const dayDeliveries = deliveries
+        .filter((delivery) => delivery.delivery_date === dayIso)
+        .sort((a, b) => String(a.delivery_time || "").localeCompare(String(b.delivery_time || "")));
+
+      return `
+        <section class="week-day ${dayIso === todayIso ? "today" : ""}">
+          <div class="week-day-header">
+            <strong>${formatWeekDate(day, { weekday: "short" })}</strong>
+            <span>${formatWeekDate(day, { month: "numeric", day: "numeric" })}</span>
+          </div>
+          <div class="week-day-deliveries">
+            ${
+              dayDeliveries.length
+                ? dayDeliveries
+                    .map((delivery) => renderWeekDelivery(delivery))
+                    .join("")
+                : '<p class="empty-day">No deliveries</p>'
+            }
+          </div>
+        </section>
+      `;
+    })
+    .join("");
+}
+
+function renderWeekDelivery(delivery) {
+  const badgeClass =
+    delivery.status === "Completed"
+      ? "completed"
+      : delivery.status === "In Progress"
+        ? "in-progress"
+        : "";
+
+  return `
+    <button class="week-delivery" type="button" onclick="openDelivery(${delivery.id})">
+      <span class="week-delivery-time">${escapeHtml(delivery.delivery_time || "Time TBD")}</span>
+      <strong>${escapeHtml(delivery.store)}</strong>
+      <span>${escapeHtml(delivery.dispensary_location || delivery.companies_delivering || "")}</span>
+      <span class="badge ${badgeClass}">${escapeHtml(delivery.status || "Not Started")}</span>
+    </button>
+  `;
 }
 
 function renderDeliveryList() {

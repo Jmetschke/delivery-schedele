@@ -33,6 +33,7 @@ body {
 }
 
 .panel,
+.week-card,
 .calendar-card {
   background: white;
   border-radius: 8px;
@@ -40,7 +41,119 @@ body {
   padding: 18px;
 }
 
+.week-card {
+  grid-column: 1 / -1;
+  min-height: 310px;
+  border: 2px solid #bfdbfe;
+}
+
+.week-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.week-header h2 {
+  margin: 0;
+  font-size: 26px;
+}
+
+.week-header p {
+  margin: 4px 0 0;
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.week-header > strong {
+  border-radius: 8px;
+  background: #dbeafe;
+  color: #1e40af;
+  padding: 7px 10px;
+  white-space: nowrap;
+}
+
+.week-schedule {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.week-day {
+  min-width: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  overflow: hidden;
+}
+
+.week-day.today {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.week-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 8px;
+  background: white;
+}
+
+.week-day-header strong,
+.week-day-header span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.week-day-deliveries {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-height: 170px;
+  padding: 8px;
+}
+
+.week-delivery {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: white;
+  color: #1f2937;
+  padding: 8px;
+  text-align: left;
+  font-weight: 400;
+}
+
+.week-delivery:hover {
+  background: #f8fafc;
+}
+
+.week-delivery strong,
+.week-delivery span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.week-delivery-time {
+  color: #1e40af;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.empty-day {
+  margin: 0;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
 .calendar-card {
+  grid-column: 2;
   min-height: 650px;
 }
 
@@ -389,6 +502,19 @@ fieldset input {
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;
+  }
+
+  .week-card,
+  .calendar-card {
+    grid-column: 1;
+  }
+
+  .week-schedule {
+    grid-template-columns: 1fr;
+  }
+
+  .week-day-deliveries {
+    min-height: auto;
   }
 
   .delivery-row {
