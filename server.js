@@ -24,8 +24,13 @@ const CHECKLIST_COLUMNS = [
     spreadsheetHeader: "ORDER SPLIT IN METRC?"
   },
   {
-    key: "exit_labels",
-    label: "Exit labels made / printed",
+    key: "exit_labels_made",
+    label: "Exit labels made",
+    spreadsheetHeader: "EXIT LABELS MADE? PRINTED?"
+  },
+  {
+    key: "exit_labels_printed",
+    label: "Exit labels printed",
     spreadsheetHeader: "EXIT LABELS MADE? PRINTED?"
   },
   {
@@ -273,6 +278,43 @@ async function insertOrUpdateDelivery(delivery, checklistItems) {
 app.get("/api/health", (req, res) => {
   res.json({ ok: true, message: "Delivery Calendar app is running" });
 });
+
+async function syncChecklistDefinitions() {
+  const deliveries = await all("SELECT id FROM deliveries");
+
+  for (const delivery of deliveries) {
+    const oldExitLabels = await get(
+      "SELECT completed, raw_value FROM delivery_checklist WHERE delivery_id = ? AND item_key = 'exit_labels'",
+      [delivery.id]
+    );
+
+    for (const item of CHECKLIST_COLUMNS) {
+      const completed =
+        oldExitLabels && ["exit_labels_made", "exit_labels_printed"].includes(item.key)
+          ? oldExitLabels.completed
+          : 0;
+      const rawValue =
+        oldExitLabels && ["exit_labels_made", "exit_labels_printed"].includes(item.key)
+          ? oldExitLabels.raw_value
+          : "";
+
+      await run(
+        `
+          INSERT INTO delivery_checklist (delivery_id, item_key, label, completed, raw_value)
+          VALUES (?, ?, ?, ?, ?)
+          ON CONFLICT(delivery_id, item_key)
+          DO UPDATE SET label = excluded.label
+        `,
+        [delivery.id, item.key, item.label, completed, rawValue]
+      );
+    }
+
+    await run("DELETE FROM delivery_checklist WHERE delivery_id = ? AND item_key = 'exit_labels'", [
+      delivery.id
+    ]);
+    await updateDeliveryStatusFromChecklist(delivery.id);
+  }
+}
 
 app.get("/api/deliveries", async (req, res) => {
   try {
@@ -642,6 +684,12 @@ app.post("/api/import", upload.single("schedule"), async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
+  try {
+    await syncChecklistDefinitions();
+  } catch (err) {
+    console.error("Unable to sync checklist definitions", err);
+  }
+
   console.log(`Delivery Calendar app running at http://localhost:${PORT}`);
 });
