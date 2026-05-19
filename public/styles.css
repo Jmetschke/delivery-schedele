@@ -44,6 +44,41 @@ body {
   min-height: 650px;
 }
 
+#calendar .fc-daygrid-event,
+#calendar .fc-daygrid-dot-event {
+  align-items: flex-start;
+  white-space: normal;
+}
+
+#calendar .fc-daygrid-event-dot {
+  flex: 0 0 auto;
+  margin-top: 5px;
+}
+
+#calendar .fc-event-main,
+#calendar .fc-event-main-frame,
+#calendar .fc-event-title,
+#calendar .fc-event-title-container,
+#calendar .fc-event-time {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+#calendar .fc-event-main-frame {
+  flex-wrap: wrap;
+}
+
+#calendar .fc-event-title {
+  display: block;
+  line-height: 1.25;
+}
+
+#calendar .fc-daygrid-event-harness {
+  margin-top: 2px;
+}
+
 .list-panel {
   grid-column: 1 / -1;
 }
