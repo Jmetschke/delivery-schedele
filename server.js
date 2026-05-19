@@ -69,11 +69,6 @@ const CHECKLIST_COLUMNS = [
     spreadsheetHeader: "TOTE SEALED?"
   },
   {
-    key: "folder_manifest_invoice",
-    label: "Folder contains manifest + invoice copies",
-    spreadsheetHeader: "FOLDER CONTAINS MANIFEST + INVOICE COPIES?"
-  },
-  {
     key: "delivery_confirmed",
     label: "Delivery confirmed",
     spreadsheetHeader: "DELIVERY CONFIRMED?"
@@ -349,6 +344,10 @@ async function syncChecklistDefinitions() {
     await run("DELETE FROM delivery_checklist WHERE delivery_id = ? AND item_key = 'sb_labels'", [
       delivery.id
     ]);
+    await run(
+      "DELETE FROM delivery_checklist WHERE delivery_id = ? AND item_key = 'folder_manifest_invoice'",
+      [delivery.id]
+    );
     await updateDeliveryStatusFromChecklist(delivery.id);
   }
 }
