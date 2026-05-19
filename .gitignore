@@ -1,5 +1,14 @@
 node_modules/
+
+# Local database files should stay on this machine.
 data/
+*.sqlite
+*.sqlite3
+*.db
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite3-shm
+*.sqlite3-wal
 uploads/
 .DS_Store
 npm-debug.log*
