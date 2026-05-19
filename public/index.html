@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Delivery Calendar</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.20/index.global.min.css">
+  <link rel="stylesheet" href="/styles.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.20/index.global.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Delivery Calendar</h1>
+      <p>Calendar, delivery list, and delivery tracker</p>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <h2>New Delivery</h2>
+      <form id="newDeliveryForm" class="new-delivery-form">
+        <label>Date <span class="required">Required</span>
+          <input id="newDeliveryDate" type="date" required />
+        </label>
+
+        <label>Time
+          <input id="newDeliveryTime" type="time" />
+        </label>
+
+        <label>Dispensary Name <span class="required">Required</span>
+          <input id="newStore" required />
+        </label>
+
+        <label>Dispensary Location
+          <input id="newDispensaryLocation" />
+        </label>
+
+        <label>Dispensary Address
+          <textarea id="newDispensaryAddress" rows="2" class="compact-address"></textarea>
+        </label>
+
+        <fieldset>
+          <legend>Companies Delivering</legend>
+          <label><input type="checkbox" name="newCompaniesDelivering" value="Hijnx" /> Hijnx</label>
+          <label><input type="checkbox" name="newCompaniesDelivering" value="SB" /> SB</label>
+          <label><input type="checkbox" name="newCompaniesDelivering" value="PG" /> PG</label>
+        </fieldset>
+
+        <label>Needs Displays
+          <select id="newNeedsDisplay">
+            <option value="">Select</option>
+            <option>Yes</option>
+            <option>No</option>
+          </select>
+        </label>
+
+        <label>Date Order Received
+          <input id="newDateOrderReceived" type="date" />
+        </label>
+
+        <label>Boarder Store
+          <select id="newBorderStore">
+            <option value="">Select</option>
+            <option>Yes</option>
+            <option>No</option>
+          </select>
+        </label>
+
+        <button type="submit">Add Delivery</button>
+      </form>
+      <p id="newDeliveryResult" class="message"></p>
+
+      <div class="summary">
+        <div>
+          <strong id="totalCount">0</strong>
+          <span>Total</span>
+        </div>
+        <div>
+          <strong id="readyCount">0</strong>
+          <span>Ready</span>
+        </div>
+        <div>
+          <strong id="deliveredCount">0</strong>
+          <span>Delivered</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="calendar-card">
+      <div id="calendar"></div>
+    </section>
+
+    <section class="panel list-panel">
+      <div class="list-header">
+        <h2>Delivery List</h2>
+        <select id="statusFilter">
+          <option value="">All Statuses</option>
+          <option>Not Started</option>
+          <option>In Progress</option>
+          <option>Ready for Delivery</option>
+          <option>Delivered</option>
+        </select>
+      </div>
+      <div id="deliveryList" class="delivery-list"></div>
+    </section>
+  </main>
+
+  <aside id="drawer" class="drawer" aria-hidden="true">
+    <div class="drawer-content">
+      <button id="closeDrawer" class="close-btn">×</button>
+      <h2 id="drawerTitle">Delivery</h2>
+
+      <form id="deliveryForm" class="delivery-form">
+        <input type="hidden" id="deliveryId" />
+
+        <label>Dispensary Name
+          <input id="store" />
+        </label>
+
+        <label>Dispensary Location
+          <input id="dispensaryLocation" />
+        </label>
+
+        <label class="full-width">Dispensary Address
+          <textarea id="dispensaryAddress" rows="2" class="compact-address"></textarea>
+        </label>
+
+        <fieldset class="full-width">
+          <legend>Companies Delivering</legend>
+          <label><input type="checkbox" name="companiesDelivering" value="Hijnx" /> Hijnx</label>
+          <label><input type="checkbox" name="companiesDelivering" value="SB" /> SB</label>
+          <label><input type="checkbox" name="companiesDelivering" value="PG" /> PG</label>
+        </fieldset>
+
+        <label>Boarder Store
+          <select id="borderStore">
+            <option value="">Select</option>
+            <option>Yes</option>
+            <option>No</option>
+          </select>
+        </label>
+
+        <label>Needs Displays
+          <select id="needsDisplay">
+            <option value="">Select</option>
+            <option>Yes</option>
+            <option>No</option>
+          </select>
+        </label>
+
+        <label>Date Order Received
+          <input id="dateOrderReceived" type="date" />
+        </label>
+
+        <label>Delivery Date
+          <input id="deliveryDate" type="date" />
+        </label>
+
+        <label>Delivery Time
+          <input id="deliveryTime" type="time" />
+        </label>
+
+        <label>Status
+          <select id="status">
+            <option>Not Started</option>
+            <option>In Progress</option>
+            <option>Ready for Delivery</option>
+            <option>Delivered</option>
+          </select>
+        </label>
+
+        <label class="full-width">Notes
+          <textarea id="notes" rows="3"></textarea>
+        </label>
+
+        <button type="submit">Save Delivery Details</button>
+      </form>
+
+      <h3>Checklist</h3>
+      <div id="checklist" class="checklist"></div>
+    </div>
+  </aside>
+
+  <script src="/app.js"></script>
+</body>
+</html>
