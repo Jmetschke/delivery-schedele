@@ -19,6 +19,11 @@
   </header>
 
   <main class="layout">
+    <datalist id="deliveryCompanyOptions">
+      <option value="EO"></option>
+      <option value="GST"></option>
+    </datalist>
+
     <section class="week-card">
       <div class="week-header">
         <div>
@@ -46,7 +51,7 @@
         </label>
 
         <label>Delivery Company <span class="required">Required</span>
-          <input id="newDeliveryCompany" required />
+          <input id="newDeliveryCompany" list="deliveryCompanyOptions" required />
         </label>
 
         <label>Delivery Driver <span class="required">Required</span>
@@ -212,7 +217,7 @@
         </label>
 
         <label>Delivery Company <span class="required">Required</span>
-          <input id="deliveryCompany" required />
+          <input id="deliveryCompany" list="deliveryCompanyOptions" required />
         </label>
 
         <label>Delivery Driver <span class="required">Required</span>
