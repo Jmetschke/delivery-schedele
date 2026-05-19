@@ -507,6 +507,24 @@ app.patch("/api/deliveries/:id", async (req, res) => {
   }
 });
 
+app.delete("/api/deliveries/:id", async (req, res) => {
+  try {
+    const delivery = await get("SELECT id FROM deliveries WHERE id = ?", [req.params.id]);
+
+    if (!delivery) {
+      return res.status(404).json({ error: "Delivery not found" });
+    }
+
+    await run("DELETE FROM delivery_checklist WHERE delivery_id = ?", [req.params.id]);
+    await run("DELETE FROM deliveries WHERE id = ?", [req.params.id]);
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Unable to delete delivery" });
+  }
+});
+
 app.patch("/api/checklist/:id", async (req, res) => {
   try {
     const completed = req.body.completed ? 1 : 0;

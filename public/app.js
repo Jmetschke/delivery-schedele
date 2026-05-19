@@ -27,6 +27,7 @@ function setupHandlers() {
   document.getElementById("statusFilter").addEventListener("change", renderDeliveryList);
   document.getElementById("closeDrawer").addEventListener("click", closeDrawer);
   document.getElementById("deliveryForm").addEventListener("submit", saveDelivery);
+  document.getElementById("deleteDelivery").addEventListener("click", deleteDelivery);
 }
 
 function selectedCheckboxValues(name) {
@@ -376,6 +377,29 @@ async function saveDelivery(event) {
 
   if (!response.ok) {
     alert("Delivery did not save.");
+    return;
+  }
+
+  await loadDeliveries();
+  calendar.refetchEvents();
+  closeDrawer();
+}
+
+async function deleteDelivery() {
+  const id = document.getElementById("deliveryId").value;
+  const store = document.getElementById("store").value.trim() || "this delivery";
+
+  if (!id) return;
+
+  const confirmed = window.confirm(`Delete ${store}? This cannot be undone.`);
+  if (!confirmed) return;
+
+  const response = await fetch(`/api/deliveries/${id}`, {
+    method: "DELETE"
+  });
+
+  if (!response.ok) {
+    alert("Delivery did not delete.");
     return;
   }
 

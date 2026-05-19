@@ -465,6 +465,20 @@ fieldset input {
   grid-column: 1 / -1;
 }
 
+.drawer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.danger-btn {
+  background: #dc2626;
+}
+
+.danger-btn:hover {
+  background: #b91c1c;
+}
+
 .checklist {
   display: grid;
   gap: 8px;
