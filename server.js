@@ -134,6 +134,55 @@ function all(sql, params = []) {
   });
 }
 
+function selectedCompanies(value) {
+  return new Set(
+    String(value || "")
+      .split(",")
+      .map((company) => company.trim().toUpperCase())
+      .filter(Boolean)
+  );
+}
+
+function isChecklistItemActive(itemKey, companiesDelivering) {
+  if (itemKey !== "sb_labels") return true;
+  return selectedCompanies(companiesDelivering).has("SB");
+}
+
+async function updateDeliveryStatusFromChecklist(deliveryId) {
+  const delivery = await get("SELECT companies_delivering FROM deliveries WHERE id = ?", [
+    deliveryId
+  ]);
+
+  if (!delivery) return null;
+
+  const checklistItems = await all(
+    "SELECT item_key, completed FROM delivery_checklist WHERE delivery_id = ?",
+    [deliveryId]
+  );
+  const activeItems = checklistItems.filter((item) =>
+    isChecklistItemActive(item.item_key, delivery.companies_delivering)
+  );
+  const totalCount = activeItems.length;
+  const completedCount = activeItems.filter((item) => item.completed).length;
+  const status =
+    totalCount > 0 && completedCount === totalCount
+      ? "Completed"
+      : completedCount > 0
+        ? "In Progress"
+        : "Not Started";
+
+  await run("UPDATE deliveries SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [
+    status,
+    deliveryId
+  ]);
+
+  return {
+    status,
+    total_count: totalCount,
+    completed_count: completedCount
+  };
+}
+
 async function insertOrUpdateDelivery(delivery, checklistItems) {
   const existing = await get(
     `
@@ -171,6 +220,7 @@ async function insertOrUpdateDelivery(delivery, checklistItems) {
         deliveryId
       ]
     );
+
   } else {
     const result = await run(
       `
@@ -214,6 +264,8 @@ async function insertOrUpdateDelivery(delivery, checklistItems) {
       [deliveryId, item.key, item.label, item.completed, item.raw_value]
     );
   }
+
+  await updateDeliveryStatusFromChecklist(deliveryId);
 
   return deliveryId;
 }
@@ -446,6 +498,8 @@ app.patch("/api/deliveries/:id", async (req, res) => {
       ]
     );
 
+    await updateDeliveryStatusFromChecklist(req.params.id);
+
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
@@ -469,35 +523,14 @@ app.patch("/api/checklist/:id", async (req, res) => {
       req.params.id
     ]);
 
-    const checklistStatus = await get(
-      `
-        SELECT COUNT(*) AS total_count, SUM(completed) AS completed_count
-        FROM delivery_checklist
-        WHERE delivery_id = ?
-      `,
-      [checklistItem.delivery_id]
-    );
-
-    const totalCount = checklistStatus.total_count || 0;
-    const completedCount = checklistStatus.completed_count || 0;
-    const status =
-      totalCount > 0 && completedCount === totalCount
-        ? "Completed"
-        : completedCount > 0
-          ? "In Progress"
-          : "Not Started";
-
-    await run(
-      "UPDATE deliveries SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-      [status, checklistItem.delivery_id]
-    );
+    const checklistStatus = await updateDeliveryStatusFromChecklist(checklistItem.delivery_id);
 
     res.json({
       ok: true,
       delivery_id: checklistItem.delivery_id,
-      status,
-      total_count: totalCount,
-      completed_count: completedCount
+      status: checklistStatus.status,
+      total_count: checklistStatus.total_count,
+      completed_count: checklistStatus.completed_count
     });
   } catch (err) {
     console.error(err);

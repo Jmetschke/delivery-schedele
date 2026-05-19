@@ -48,6 +48,20 @@ function setSelectedCheckboxValues(name, values) {
   });
 }
 
+function selectedCompanies(value) {
+  return new Set(
+    String(value || "")
+      .split(",")
+      .map((company) => company.trim().toUpperCase())
+      .filter(Boolean)
+  );
+}
+
+function isChecklistItemActive(item, companiesDelivering) {
+  if (item.item_key !== "sb_labels") return true;
+  return selectedCompanies(companiesDelivering).has("SB");
+}
+
 async function createDelivery(event) {
   event.preventDefault();
 
@@ -124,7 +138,10 @@ function renderDeliveryList() {
           : delivery.status === "In Progress"
             ? "in-progress"
           : "";
-      const checklist = renderChecklistPreview(delivery.checklist || []);
+      const checklist = renderChecklistPreview(
+        delivery.checklist || [],
+        delivery.companies_delivering
+      );
 
       return `
         <div class="delivery-row" onclick="openDelivery(${delivery.id})">
@@ -142,7 +159,7 @@ function renderDeliveryList() {
     .join("");
 }
 
-function renderChecklistPreview(items) {
+function renderChecklistPreview(items, companiesDelivering) {
   if (!items.length) {
     return '<div class="checklist-preview"><span class="task-pill task-not-done">Checklist not started</span></div>';
   }
@@ -151,9 +168,10 @@ function renderChecklistPreview(items) {
     <div class="checklist-preview" aria-label="Checklist status">
       ${items
         .map((item) => {
+          const active = isChecklistItemActive(item, companiesDelivering);
           const done = Boolean(item.completed);
-          const statusText = done ? "Done" : "Not done";
-          const statusClass = done ? "task-done" : "task-not-done";
+          const statusText = active ? (done ? "Done" : "Not done") : "Inactive";
+          const statusClass = active ? (done ? "task-done" : "task-not-done") : "task-inactive";
 
           return `
             <span class="task-pill ${statusClass}" title="${escapeHtml(item.label)}: ${statusText}">
@@ -187,7 +205,7 @@ async function openDelivery(id) {
   document.getElementById("status").value = d.status || "Not Started";
   document.getElementById("notes").value = d.notes || "";
 
-  renderChecklist(data.checklist || []);
+  renderChecklist(data.checklist || [], d.companies_delivering);
   document.getElementById("drawer").classList.add("open");
   document.getElementById("drawer").setAttribute("aria-hidden", "false");
 }
@@ -197,22 +215,27 @@ function closeDrawer() {
   document.getElementById("drawer").setAttribute("aria-hidden", "true");
 }
 
-function renderChecklist(items) {
+function renderChecklist(items, companiesDelivering) {
   const checklist = document.getElementById("checklist");
 
   checklist.innerHTML = items
-    .map(
-      (item) => `
-        <label class="check-item">
+    .map((item) => {
+      const active = isChecklistItemActive(item, companiesDelivering);
+      const inactiveText = active ? "" : '<span class="inactive-note">Inactive unless SB delivers</span>';
+
+      return `
+        <label class="check-item ${active ? "" : "inactive"}">
           <input
             type="checkbox"
             ${item.completed ? "checked" : ""}
+            ${active ? "" : "disabled"}
             onchange="saveChecklistItem(${item.id}, this.checked)"
           />
           <span>${escapeHtml(item.label)}</span>
+          ${inactiveText}
         </label>
-      `
-    )
+      `;
+    })
     .join("");
 }
 

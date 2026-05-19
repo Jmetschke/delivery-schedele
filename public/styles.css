@@ -240,6 +240,12 @@ fieldset input {
   color: #b91c1c;
 }
 
+.task-inactive {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #6b7280;
+}
+
 .badge {
   display: inline-block;
   border-radius: 999px;
@@ -327,6 +333,22 @@ fieldset input {
 
 .check-item input {
   width: auto;
+}
+
+.check-item.inactive {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.check-item.inactive input {
+  cursor: not-allowed;
+}
+
+.inactive-note {
+  margin-left: auto;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 @media (max-width: 900px) {
