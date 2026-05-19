@@ -2,23 +2,23 @@ let calendar;
 let deliveries = [];
 
 const DRIVER_ID_BY_NAME = {
-  "Adriana Santacruz": "",
-  "Chloe Stockholm": "",
-  "Eduardo Ibarra": "",
-  "Hector Ochoa": "",
-  "Jason Litwin": "",
-  "John Tinsley": "",
-  "Jorge Galvez": "",
-  "Joselyn Cervantes": "",
-  "Julia Johnson": "",
-  "Karina Cervantez": "",
-  "Lamarr Collins": "",
-  "Lily Knightly": "",
-  "Magdalena Rodriguez": "",
-  "Paul Johnson": "",
-  "Richard Paull": "",
-  "STEVE GARZA": "",
-  "TED STEINBRECHER": ""
+  "Adriana Santacruz": "trag10001537",
+  "Chloe Stockholm": "Stockholm0056",
+  "Eduardo Ibarra": "TRAG10000874",
+  "Hector Ochoa": "TRAG10001408",
+  "Jason Litwin": "TRAG10001271",
+  "John Tinsley": "001",
+  "Jorge Galvez": "TRAG100010091",
+  "Joselyn Cervantes": "TRAG10001437",
+  "Julia Johnson": "002",
+  "Karina Cervantez": "TRAG10001042",
+  "Lamarr Collins": "TRAG10000914",
+  "Lily Knightly": "008",
+  "Magdalena Rodriguez": "TRAG10001486",
+  "Paul Johnson": "009",
+  "Richard Paull": "TRAG10001512",
+  "STEVE GARZA": "TRAC10000166",
+  "TED STEINBRECHER": "TRAG10001542"
 };
 
 document.addEventListener("DOMContentLoaded", () => {
