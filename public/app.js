@@ -124,18 +124,47 @@ function renderDeliveryList() {
           : delivery.status === "In Progress"
             ? "in-progress"
           : "";
+      const checklist = renderChecklistPreview(delivery.checklist || []);
 
       return `
         <div class="delivery-row" onclick="openDelivery(${delivery.id})">
-          <div>${delivery.delivery_date || ""}</div>
-          <div><strong>${escapeHtml(delivery.store)}</strong><br>${escapeHtml(delivery.dispensary_location || delivery.dispensary_address || "")}</div>
-          <div>${escapeHtml(delivery.delivery_time || "")}</div>
-          <div>${escapeHtml(delivery.companies_delivering || "")}</div>
-          <div><span class="badge ${badgeClass}">${escapeHtml(delivery.status || "Not Started")}</span></div>
+          <div class="delivery-row-main">
+            <div>${delivery.delivery_date || ""}</div>
+            <div><strong>${escapeHtml(delivery.store)}</strong><br>${escapeHtml(delivery.dispensary_location || delivery.dispensary_address || "")}</div>
+            <div>${escapeHtml(delivery.delivery_time || "")}</div>
+            <div>${escapeHtml(delivery.companies_delivering || "")}</div>
+            <div><span class="badge ${badgeClass}">${escapeHtml(delivery.status || "Not Started")}</span></div>
+          </div>
+          ${checklist}
         </div>
       `;
     })
     .join("");
+}
+
+function renderChecklistPreview(items) {
+  if (!items.length) {
+    return '<div class="checklist-preview"><span class="task-pill task-not-done">Checklist not started</span></div>';
+  }
+
+  return `
+    <div class="checklist-preview" aria-label="Checklist status">
+      ${items
+        .map((item) => {
+          const done = Boolean(item.completed);
+          const statusText = done ? "Done" : "Not done";
+          const statusClass = done ? "task-done" : "task-not-done";
+
+          return `
+            <span class="task-pill ${statusClass}" title="${escapeHtml(item.label)}: ${statusText}">
+              <span class="task-label">${escapeHtml(item.label)}</span>
+              <span class="task-state">${statusText}</span>
+            </span>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
 }
 
 async function openDelivery(id) {

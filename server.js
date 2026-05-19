@@ -255,7 +255,33 @@ app.get("/api/deliveries", async (req, res) => {
       params
     );
 
-    res.json(rows);
+    if (!rows.length) {
+      return res.json([]);
+    }
+
+    const placeholders = rows.map(() => "?").join(",");
+    const checklistRows = await all(
+      `
+        SELECT delivery_id, item_key, label, completed
+        FROM delivery_checklist
+        WHERE delivery_id IN (${placeholders})
+        ORDER BY id
+      `,
+      rows.map((row) => row.id)
+    );
+
+    const checklistByDelivery = checklistRows.reduce((grouped, item) => {
+      if (!grouped[item.delivery_id]) grouped[item.delivery_id] = [];
+      grouped[item.delivery_id].push(item);
+      return grouped;
+    }, {});
+
+    res.json(
+      rows.map((row) => ({
+        ...row,
+        checklist: checklistByDelivery[row.id] || []
+      }))
+    );
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Unable to load deliveries" });
