@@ -63,11 +63,21 @@ function isChecklistItemActive(item, companiesDelivering) {
   return selectedCompanies(companiesDelivering).has("SB");
 }
 
+function hasSelectedCheckbox(name) {
+  return selectedCheckboxValues(name).length > 0;
+}
+
 async function createDelivery(event) {
   event.preventDefault();
 
   const form = event.currentTarget;
   const result = document.getElementById("newDeliveryResult");
+
+  if (!hasSelectedCheckbox("newCompaniesDelivering")) {
+    result.textContent = "Select at least one company delivering.";
+    return;
+  }
+
   const payload = {
     delivery_date: document.getElementById("newDeliveryDate").value,
     delivery_time: document.getElementById("newDeliveryTime").value,
@@ -370,6 +380,11 @@ async function saveDelivery(event) {
   event.preventDefault();
 
   const id = document.getElementById("deliveryId").value;
+
+  if (!hasSelectedCheckbox("companiesDelivering")) {
+    alert("Select at least one company delivering.");
+    return;
+  }
 
   const payload = {
     store: document.getElementById("store").value.trim(),

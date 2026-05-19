@@ -158,10 +158,26 @@ function isChecklistItemActive(itemKey, companiesDelivering) {
   return selectedCompanies(companiesDelivering).has("SB");
 }
 
+function hasValue(value) {
+  return String(value || "").trim().length > 0;
+}
+
+function hasRequiredDeliveryFields(delivery) {
+  return [
+    delivery.store,
+    delivery.dispensary_location,
+    delivery.companies_delivering,
+    delivery.delivery_date,
+    delivery.delivery_time,
+    delivery.pickup_time,
+    delivery.delivery_company,
+    delivery.drivers,
+    delivery.van
+  ].every(hasValue);
+}
+
 async function updateDeliveryStatusFromChecklist(deliveryId) {
-  const delivery = await get("SELECT companies_delivering FROM deliveries WHERE id = ?", [
-    deliveryId
-  ]);
+  const delivery = await get("SELECT * FROM deliveries WHERE id = ?", [deliveryId]);
 
   if (!delivery) return null;
 
@@ -174,10 +190,12 @@ async function updateDeliveryStatusFromChecklist(deliveryId) {
   );
   const totalCount = activeItems.length;
   const completedCount = activeItems.filter((item) => item.completed).length;
+  const checklistComplete = totalCount > 0 && completedCount === totalCount;
+  const requiredFieldsComplete = hasRequiredDeliveryFields(delivery);
   const status =
-    totalCount > 0 && completedCount === totalCount
+    checklistComplete && requiredFieldsComplete
       ? "Completed"
-      : completedCount > 0
+      : completedCount > 0 || checklistComplete
         ? "In Progress"
         : "Not Started";
 
@@ -189,7 +207,8 @@ async function updateDeliveryStatusFromChecklist(deliveryId) {
   return {
     status,
     total_count: totalCount,
-    completed_count: completedCount
+    completed_count: completedCount,
+    required_fields_complete: requiredFieldsComplete
   };
 }
 
