@@ -55,7 +55,12 @@ const CHECKLIST_COLUMNS = [
   },
   {
     key: "manifest_created",
-    label: "Manifest created + printed",
+    label: "Manifest created",
+    spreadsheetHeader: "MANIFEST CREATED + PRINTED?"
+  },
+  {
+    key: "manifest_printed",
+    label: "Manifest printed",
     spreadsheetHeader: "MANIFEST CREATED + PRINTED?"
   },
   {
@@ -296,16 +301,32 @@ async function syncChecklistDefinitions() {
       "SELECT completed, raw_value FROM delivery_checklist WHERE delivery_id = ? AND item_key = 'sb_labels'",
       [delivery.id]
     );
+    const oldManifest = await get(
+      "SELECT completed, raw_value FROM delivery_checklist WHERE delivery_id = ? AND item_key = 'manifest_created'",
+      [delivery.id]
+    );
+    const existingManifestPrinted = await get(
+      "SELECT id FROM delivery_checklist WHERE delivery_id = ? AND item_key = 'manifest_printed'",
+      [delivery.id]
+    );
 
     for (const item of CHECKLIST_COLUMNS) {
       const completed =
-        oldExitLabels && ["exit_labels_made", "exit_labels_printed"].includes(item.key)
+        oldManifest &&
+        item.key === "manifest_printed" &&
+        !existingManifestPrinted
+          ? oldManifest.completed
+          : oldExitLabels && ["exit_labels_made", "exit_labels_printed"].includes(item.key)
           ? oldExitLabels.completed
           : oldSbLabels && ["sb_labels_printed", "sb_labels_applied"].includes(item.key)
             ? oldSbLabels.completed
           : 0;
       const rawValue =
-        oldExitLabels && ["exit_labels_made", "exit_labels_printed"].includes(item.key)
+        oldManifest &&
+        item.key === "manifest_printed" &&
+        !existingManifestPrinted
+          ? oldManifest.raw_value
+          : oldExitLabels && ["exit_labels_made", "exit_labels_printed"].includes(item.key)
           ? oldExitLabels.raw_value
           : oldSbLabels && ["sb_labels_printed", "sb_labels_applied"].includes(item.key)
             ? oldSbLabels.raw_value
