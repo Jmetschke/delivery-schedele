@@ -1,6 +1,26 @@
 let calendar;
 let deliveries = [];
 
+const DRIVER_ID_BY_NAME = {
+  "Adriana Santacruz": "",
+  "Chloe Stockholm": "",
+  "Eduardo Ibarra": "",
+  "Hector Ochoa": "",
+  "Jason Litwin": "",
+  "John Tinsley": "",
+  "Jorge Galvez": "",
+  "Joselyn Cervantes": "",
+  "Julia Johnson": "",
+  "Karina Cervantez": "",
+  "Lamarr Collins": "",
+  "Lily Knightly": "",
+  "Magdalena Rodriguez": "",
+  "Paul Johnson": "",
+  "Richard Paull": "",
+  "STEVE GARZA": "",
+  "TED STEINBRECHER": ""
+};
+
 document.addEventListener("DOMContentLoaded", () => {
   setupCalendar();
   setupHandlers();
@@ -31,6 +51,22 @@ function setupHandlers() {
   document.getElementById("closeDrawer").addEventListener("click", closeDrawer);
   document.getElementById("deliveryForm").addEventListener("submit", saveDelivery);
   document.getElementById("deleteDelivery").addEventListener("click", deleteDelivery);
+  bindDriverIdAutofill("newDeliveryDriver", "newDriverIdNumber");
+  bindDriverIdAutofill("deliveryDriver", "driverIdNumber");
+}
+
+function bindDriverIdAutofill(driverInputId, driverIdInputId) {
+  const driverInput = document.getElementById(driverInputId);
+  const driverIdInput = document.getElementById(driverIdInputId);
+
+  driverInput.addEventListener("change", () => {
+    const selectedName = driverInput.value.trim();
+    const driverId = DRIVER_ID_BY_NAME[selectedName];
+
+    if (driverId) {
+      driverIdInput.value = driverId;
+    }
+  });
 }
 
 function selectedCheckboxValues(name) {
@@ -100,6 +136,7 @@ async function createDelivery(event) {
     pickup_time: document.getElementById("newPickupTime").value,
     delivery_company: document.getElementById("newDeliveryCompany").value.trim(),
     drivers: document.getElementById("newDeliveryDriver").value.trim(),
+    driver_id_number: document.getElementById("newDriverIdNumber").value.trim(),
     van: document.getElementById("newDeliveryVan").value.trim(),
     store: document.getElementById("newStore").value.trim(),
     dispensary_location: document.getElementById("newDispensaryLocation").value.trim(),
@@ -336,6 +373,7 @@ async function openDelivery(id) {
   document.getElementById("pickupTime").value = d.pickup_time || "";
   document.getElementById("deliveryCompany").value = d.delivery_company || "";
   document.getElementById("deliveryDriver").value = d.drivers || "";
+  document.getElementById("driverIdNumber").value = d.driver_id_number || "";
   document.getElementById("deliveryVan").value = d.van || "";
   document.getElementById("status").value = d.status || "Not Started";
   document.getElementById("notes").value = d.notes || "";
@@ -415,6 +453,7 @@ async function saveDelivery(event) {
     pickup_time: document.getElementById("pickupTime").value,
     delivery_company: document.getElementById("deliveryCompany").value.trim(),
     drivers: document.getElementById("deliveryDriver").value.trim(),
+    driver_id_number: document.getElementById("driverIdNumber").value.trim(),
     van: document.getElementById("deliveryVan").value.trim(),
     status: document.getElementById("status").value,
     notes: document.getElementById("notes").value

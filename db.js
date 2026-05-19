@@ -28,6 +28,7 @@ db.serialize(() => {
       pickup_time TEXT,
       delivery_time TEXT,
       drivers TEXT,
+      driver_id_number TEXT,
       van TEXT,
       status TEXT DEFAULT 'Not Started',
       notes TEXT DEFAULT '',
@@ -49,7 +50,8 @@ db.serialize(() => {
       ["dispensary_location", "TEXT"],
       ["dispensary_address", "TEXT"],
       ["companies_delivering", "TEXT"],
-      ["delivery_company", "TEXT"]
+      ["delivery_company", "TEXT"],
+      ["driver_id_number", "TEXT"]
     ];
 
     additions.forEach(([name, type]) => {

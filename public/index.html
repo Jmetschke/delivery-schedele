@@ -24,6 +24,26 @@
       <option value="GST"></option>
     </datalist>
 
+    <datalist id="driverNameOptions">
+      <option value="Adriana Santacruz"></option>
+      <option value="Chloe Stockholm"></option>
+      <option value="Eduardo Ibarra"></option>
+      <option value="Hector Ochoa"></option>
+      <option value="Jason Litwin"></option>
+      <option value="John Tinsley"></option>
+      <option value="Jorge Galvez"></option>
+      <option value="Joselyn Cervantes"></option>
+      <option value="Julia Johnson"></option>
+      <option value="Karina Cervantez"></option>
+      <option value="Lamarr Collins"></option>
+      <option value="Lily Knightly"></option>
+      <option value="Magdalena Rodriguez"></option>
+      <option value="Paul Johnson"></option>
+      <option value="Richard Paull"></option>
+      <option value="STEVE GARZA"></option>
+      <option value="TED STEINBRECHER"></option>
+    </datalist>
+
     <datalist id="dispensaryNameOptions">
       <option value="Altius Carol Stream"></option>
       <option value="Altius Orland Hills"></option>
@@ -218,7 +238,11 @@
         </label>
 
         <label>Delivery Driver <span class="required">Required</span>
-          <input id="newDeliveryDriver" required />
+          <input id="newDeliveryDriver" list="driverNameOptions" required />
+        </label>
+
+        <label>Driver ID Number
+          <input id="newDriverIdNumber" />
         </label>
 
         <label>Delivery Van <span class="required">Required</span>
@@ -384,7 +408,11 @@
         </label>
 
         <label>Delivery Driver <span class="required">Required</span>
-          <input id="deliveryDriver" required />
+          <input id="deliveryDriver" list="driverNameOptions" required />
+        </label>
+
+        <label>Driver ID Number
+          <input id="driverIdNumber" />
         </label>
 
         <label>Delivery Van <span class="required">Required</span>
