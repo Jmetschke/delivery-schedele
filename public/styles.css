@@ -203,12 +203,12 @@ fieldset input {
   font-weight: 700;
 }
 
-.badge.ready {
+.badge.in-progress {
   background: #dbeafe;
   color: #1e40af;
 }
 
-.badge.delivered {
+.badge.completed {
   background: #dcfce7;
   color: #166534;
 }

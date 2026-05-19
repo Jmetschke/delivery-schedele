@@ -95,11 +95,11 @@ async function loadDeliveries() {
 
 function renderSummary() {
   document.getElementById("totalCount").textContent = deliveries.length;
-  document.getElementById("readyCount").textContent = deliveries.filter(
-    (d) => d.status === "Ready for Delivery"
+  document.getElementById("inProgressCount").textContent = deliveries.filter(
+    (d) => d.status === "In Progress"
   ).length;
-  document.getElementById("deliveredCount").textContent = deliveries.filter(
-    (d) => d.status === "Delivered"
+  document.getElementById("completedCount").textContent = deliveries.filter(
+    (d) => d.status === "Completed"
   ).length;
 }
 
@@ -119,10 +119,10 @@ function renderDeliveryList() {
   list.innerHTML = visible
     .map((delivery) => {
       const badgeClass =
-        delivery.status === "Delivered"
-          ? "delivered"
-          : delivery.status === "Ready for Delivery"
-            ? "ready"
+        delivery.status === "Completed"
+          ? "completed"
+          : delivery.status === "In Progress"
+            ? "in-progress"
           : "";
 
       return `
@@ -188,11 +188,21 @@ function renderChecklist(items) {
 }
 
 async function saveChecklistItem(id, completed) {
-  await fetch(`/api/checklist/${id}`, {
+  const response = await fetch(`/api/checklist/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ completed })
   });
+
+  if (!response.ok) {
+    alert("Checklist item did not save.");
+    return;
+  }
+
+  const data = await response.json();
+  document.getElementById("status").value = data.status || "Not Started";
+  await loadDeliveries();
+  calendar.refetchEvents();
 }
 
 async function saveDelivery(event) {

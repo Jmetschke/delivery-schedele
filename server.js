@@ -430,13 +430,49 @@ app.patch("/api/deliveries/:id", async (req, res) => {
 app.patch("/api/checklist/:id", async (req, res) => {
   try {
     const completed = req.body.completed ? 1 : 0;
+    const checklistItem = await get("SELECT delivery_id FROM delivery_checklist WHERE id = ?", [
+      req.params.id
+    ]);
+
+    if (!checklistItem) {
+      return res.status(404).json({ error: "Checklist item not found" });
+    }
 
     await run("UPDATE delivery_checklist SET completed = ? WHERE id = ?", [
       completed,
       req.params.id
     ]);
 
-    res.json({ ok: true });
+    const checklistStatus = await get(
+      `
+        SELECT COUNT(*) AS total_count, SUM(completed) AS completed_count
+        FROM delivery_checklist
+        WHERE delivery_id = ?
+      `,
+      [checklistItem.delivery_id]
+    );
+
+    const totalCount = checklistStatus.total_count || 0;
+    const completedCount = checklistStatus.completed_count || 0;
+    const status =
+      totalCount > 0 && completedCount === totalCount
+        ? "Completed"
+        : completedCount > 0
+          ? "In Progress"
+          : "Not Started";
+
+    await run(
+      "UPDATE deliveries SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      [status, checklistItem.delivery_id]
+    );
+
+    res.json({
+      ok: true,
+      delivery_id: checklistItem.delivery_id,
+      status,
+      total_count: totalCount,
+      completed_count: completedCount
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Unable to save checklist item" });
