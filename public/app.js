@@ -59,7 +59,7 @@ function selectedCompanies(value) {
 }
 
 function isChecklistItemActive(item, companiesDelivering) {
-  if (item.item_key !== "sb_labels") return true;
+  if (!["sb_labels_printed", "sb_labels_applied"].includes(item.item_key)) return true;
   return selectedCompanies(companiesDelivering).has("SB");
 }
 

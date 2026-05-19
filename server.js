@@ -34,8 +34,13 @@ const CHECKLIST_COLUMNS = [
     spreadsheetHeader: "EXIT LABELS MADE? PRINTED?"
   },
   {
-    key: "sb_labels",
-    label: "SB labels printed / applied",
+    key: "sb_labels_printed",
+    label: "SB labels printed",
+    spreadsheetHeader: "SB LABELS PRINTED?       APPLIED?"
+  },
+  {
+    key: "sb_labels_applied",
+    label: "SB labels applied",
     spreadsheetHeader: "SB LABELS PRINTED?       APPLIED?"
   },
   {
@@ -149,7 +154,7 @@ function selectedCompanies(value) {
 }
 
 function isChecklistItemActive(itemKey, companiesDelivering) {
-  if (itemKey !== "sb_labels") return true;
+  if (!["sb_labels_printed", "sb_labels_applied"].includes(itemKey)) return true;
   return selectedCompanies(companiesDelivering).has("SB");
 }
 
@@ -287,15 +292,23 @@ async function syncChecklistDefinitions() {
       "SELECT completed, raw_value FROM delivery_checklist WHERE delivery_id = ? AND item_key = 'exit_labels'",
       [delivery.id]
     );
+    const oldSbLabels = await get(
+      "SELECT completed, raw_value FROM delivery_checklist WHERE delivery_id = ? AND item_key = 'sb_labels'",
+      [delivery.id]
+    );
 
     for (const item of CHECKLIST_COLUMNS) {
       const completed =
         oldExitLabels && ["exit_labels_made", "exit_labels_printed"].includes(item.key)
           ? oldExitLabels.completed
+          : oldSbLabels && ["sb_labels_printed", "sb_labels_applied"].includes(item.key)
+            ? oldSbLabels.completed
           : 0;
       const rawValue =
         oldExitLabels && ["exit_labels_made", "exit_labels_printed"].includes(item.key)
           ? oldExitLabels.raw_value
+          : oldSbLabels && ["sb_labels_printed", "sb_labels_applied"].includes(item.key)
+            ? oldSbLabels.raw_value
           : "";
 
       await run(
@@ -310,6 +323,9 @@ async function syncChecklistDefinitions() {
     }
 
     await run("DELETE FROM delivery_checklist WHERE delivery_id = ? AND item_key = 'exit_labels'", [
+      delivery.id
+    ]);
+    await run("DELETE FROM delivery_checklist WHERE delivery_id = ? AND item_key = 'sb_labels'", [
       delivery.id
     ]);
     await updateDeliveryStatusFromChecklist(delivery.id);
