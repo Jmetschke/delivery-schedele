@@ -154,6 +154,7 @@ body {
 
 .calendar-card {
   grid-column: 2;
+  grid-row: 2 / span 2;
   min-height: 650px;
 }
 
@@ -308,6 +309,34 @@ fieldset input {
 .summary span {
   color: #6b7280;
   font-size: 13px;
+}
+
+.task-reference-panel {
+  grid-column: 1;
+}
+
+.task-reference-panel h2 {
+  margin-top: 0;
+}
+
+.task-reference-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 22px;
+}
+
+.task-reference-list li {
+  padding-left: 4px;
+  line-height: 1.35;
+}
+
+.task-reference-list span {
+  display: block;
+  margin-top: 2px;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .list-header {
@@ -521,6 +550,7 @@ fieldset input {
   .week-card,
   .calendar-card {
     grid-column: 1;
+    grid-row: auto;
   }
 
   .week-schedule {
