@@ -125,7 +125,7 @@ body {
   border-left: 6px solid var(--driver-color, #64748b);
   border-radius: 8px;
   background: var(--driver-bg, white);
-  color: #1f2937;
+  color: #000;
   padding: 8px;
   text-align: left;
   font-weight: 400;
@@ -142,7 +142,7 @@ body {
 }
 
 .week-delivery-time {
-  color: #1e40af;
+  color: #000;
   font-size: 12px;
   font-weight: 800;
 }
@@ -205,6 +205,7 @@ body {
 #calendar .fc-event-title,
 #calendar .fc-event-title-container,
 #calendar .fc-event-time {
+  color: #000;
   min-width: 0;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -232,7 +233,16 @@ body {
 #calendar .fc-event.driver-unassigned {
   background: var(--driver-bg);
   border-color: var(--driver-color);
-  color: #1f2937;
+  color: #000;
+}
+
+#calendar .fc-event.driver-color-0 .fc-event-main,
+#calendar .fc-event.driver-color-1 .fc-event-main,
+#calendar .fc-event.driver-color-2 .fc-event-main,
+#calendar .fc-event.driver-color-3 .fc-event-main,
+#calendar .fc-event.driver-color-4 .fc-event-main,
+#calendar .fc-event.driver-unassigned .fc-event-main {
+  color: #000;
 }
 
 #calendar .fc-daygrid-dot-event.driver-color-0,
@@ -425,6 +435,7 @@ fieldset input {
   border-left: 8px solid var(--driver-color, #64748b);
   border-radius: 8px;
   background: var(--driver-bg, white);
+  color: #000;
   padding: 12px;
   cursor: pointer;
 }
