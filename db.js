@@ -2,12 +2,16 @@ const path = require("path");
 const fs = require("fs");
 const sqlite3 = require("sqlite3").verbose();
 
-const dataDir = path.join(__dirname, "data");
+const dbPath = process.env.DELIVERY_DB_PATH
+  ? path.resolve(process.env.DELIVERY_DB_PATH)
+  : path.join(process.env.DELIVERY_DATA_DIR || path.join(__dirname, "data"), "delivery-calendar.sqlite");
+const dataDir = path.dirname(dbPath);
+
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
 }
 
-const dbPath = path.join(dataDir, "delivery-calendar.sqlite");
+console.log(`Using delivery database at ${dbPath}`);
 const db = new sqlite3.Database(dbPath);
 
 db.serialize(() => {

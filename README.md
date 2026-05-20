@@ -42,6 +42,28 @@ public/styles.css  App styling
 data/              SQLite database is created here
 ```
 
+## Database persistence
+
+The app stores deliveries in a SQLite database. By default, the database is created at:
+
+```text
+data/delivery-calendar.sqlite
+```
+
+Database files are ignored by Git so private delivery data is not pushed to GitHub. On a deployed host, attach a persistent disk and point the app at it with one of these environment variables:
+
+```text
+DELIVERY_DB_PATH=/path/to/persistent/delivery-calendar.sqlite
+```
+
+or:
+
+```text
+DELIVERY_DATA_DIR=/path/to/persistent/data
+```
+
+If the host uses the app folder's temporary filesystem, delivery data may disappear after a redeploy or restart.
+
 ## Good next Codex tasks
 
 Ask Codex to:
