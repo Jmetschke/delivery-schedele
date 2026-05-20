@@ -1,18 +1,122 @@
 const path = require("path");
 const fs = require("fs");
 const sqlite3 = require("sqlite3").verbose();
+const { createClient } = require("@libsql/client");
 
-const dbPath = process.env.DELIVERY_DB_PATH
-  ? path.resolve(process.env.DELIVERY_DB_PATH)
-  : path.join(process.env.DELIVERY_DATA_DIR || path.join(__dirname, "data"), "delivery-calendar.sqlite");
-const dataDir = path.dirname(dbPath);
+const tursoUrl = process.env.TURSO_DATABASE_URL || process.env.LIBSQL_DATABASE_URL;
+const tursoAuthToken = process.env.TURSO_AUTH_TOKEN || process.env.LIBSQL_AUTH_TOKEN;
 
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+function createTursoDatabase(url, authToken) {
+  const client = createClient({
+    url,
+    authToken
+  });
+  let queue = Promise.resolve();
+
+  function enqueue(operation, callback, mapResult = (result) => result) {
+    const task = queue.then(operation);
+    queue = task.catch(() => {});
+
+    task
+      .then((result) => {
+        if (callback) callback.call(mapResult(result.context), null, result.value);
+      })
+      .catch((err) => {
+        if (callback) callback(err);
+        else console.error(err);
+      });
+  }
+
+  function execute(sql, params) {
+    return client.execute({
+      sql,
+      args: params || []
+    });
+  }
+
+  return {
+    serialize(callback) {
+      callback();
+    },
+
+    run(sql, params = [], callback) {
+      if (typeof params === "function") {
+        callback = params;
+        params = [];
+      }
+
+      enqueue(
+        async () => {
+          const result = await execute(sql, params);
+          return {
+            context: {
+              lastID: result.lastInsertRowid ? Number(result.lastInsertRowid) : undefined,
+              changes: result.rowsAffected
+            },
+            value: undefined
+          };
+        },
+        callback
+      );
+    },
+
+    get(sql, params = [], callback) {
+      if (typeof params === "function") {
+        callback = params;
+        params = [];
+      }
+
+      enqueue(
+        async () => {
+          const result = await execute(sql, params);
+          return {
+            context: {},
+            value: result.rows[0]
+          };
+        },
+        callback
+      );
+    },
+
+    all(sql, params = [], callback) {
+      if (typeof params === "function") {
+        callback = params;
+        params = [];
+      }
+
+      enqueue(
+        async () => {
+          const result = await execute(sql, params);
+          return {
+            context: {},
+            value: result.rows
+          };
+        },
+        callback
+      );
+    }
+  };
 }
 
-console.log(`Using delivery database at ${dbPath}`);
-const db = new sqlite3.Database(dbPath);
+function createLocalDatabase() {
+  const dbPath = process.env.DELIVERY_DB_PATH
+    ? path.resolve(process.env.DELIVERY_DB_PATH)
+    : path.join(process.env.DELIVERY_DATA_DIR || path.join(__dirname, "data"), "delivery-calendar.sqlite");
+  const dataDir = path.dirname(dbPath);
+
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+
+  console.log(`Using local delivery database at ${dbPath}`);
+  return new sqlite3.Database(dbPath);
+}
+
+const db = tursoUrl ? createTursoDatabase(tursoUrl, tursoAuthToken) : createLocalDatabase();
+
+if (tursoUrl) {
+  console.log("Using Turso delivery database");
+}
 
 db.serialize(() => {
   db.run(`
