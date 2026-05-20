@@ -48,7 +48,7 @@ The app stores deliveries in Turso when these environment variables are set:
 
 ```text
 TURSO_DATABASE_URL=libsql://your-database.turso.io
-TURSO_AUTH_TOKEN=your-token
+TURSO_DATABASE_TOKEN=your-token
 ```
 
 For local development without Turso credentials, the app falls back to a local SQLite database at:
