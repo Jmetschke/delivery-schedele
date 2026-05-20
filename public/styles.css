@@ -290,7 +290,22 @@ textarea {
   border: 1px solid #d1d5db;
   border-radius: 8px;
   padding: 9px;
+  color: #000;
   font: inherit;
+}
+
+select,
+select option,
+datalist option {
+  background: #fff;
+  color: #000;
+}
+
+select option:disabled,
+select option[aria-disabled="true"],
+datalist option:disabled,
+datalist option[aria-disabled="true"] {
+  color: #6b7280;
 }
 
 form {
