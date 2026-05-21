@@ -18,6 +18,12 @@
     </div>
   </header>
 
+  <nav class="mobile-view-switcher" aria-label="Phone delivery views">
+    <button class="mobile-view-button is-active" type="button" data-mobile-target="calendar" aria-pressed="true">Calendar</button>
+    <button class="mobile-view-button" type="button" data-mobile-target="list" aria-pressed="false">List</button>
+    <button class="mobile-view-button" type="button" data-mobile-target="entry" aria-pressed="false">Entry</button>
+  </nav>
+
   <main class="layout">
     <datalist id="deliveryCompanyOptions">
       <option value="EO"></option>
@@ -207,7 +213,7 @@
       <option value="WINDY CITY POSEN"></option>
     </datalist>
 
-    <section class="week-card">
+    <section class="week-card mobile-view-section" data-mobile-section="calendar">
       <div class="week-header">
         <div>
           <h2>This Week</h2>
@@ -218,7 +224,7 @@
       <div id="weekSchedule" class="week-schedule"></div>
     </section>
 
-    <section class="panel">
+    <section class="panel entry-panel mobile-view-section" data-mobile-section="entry">
       <h2>New Delivery</h2>
       <form id="newDeliveryForm" class="new-delivery-form">
         <label>Delivery Date <span class="required">Required</span>
@@ -326,11 +332,11 @@
       </ol>
     </section>
 
-    <section class="calendar-card">
+    <section class="calendar-card mobile-view-section" data-mobile-section="calendar">
       <div id="calendar"></div>
     </section>
 
-    <section class="panel list-panel">
+    <section class="panel list-panel mobile-view-section" data-mobile-section="list">
       <div class="list-header">
         <h2>Delivery List</h2>
         <select id="statusFilter">

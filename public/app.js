@@ -73,6 +73,48 @@ function setupHandlers() {
   document.getElementById("deleteDelivery").addEventListener("click", deleteDelivery);
   bindDriverIdAutofill("newDeliveryDriver", "newDriverIdNumber");
   bindDriverIdAutofill("deliveryDriver", "driverIdNumber");
+  setupMobileViewSwitcher();
+}
+
+function setupMobileViewSwitcher() {
+  const phoneView = window.matchMedia("(max-width: 640px)");
+  const buttons = Array.from(document.querySelectorAll(".mobile-view-button"));
+  const sections = Array.from(document.querySelectorAll(".mobile-view-section"));
+
+  function showMobileView(target, shouldScroll = true) {
+    const isPhone = phoneView.matches;
+
+    buttons.forEach((button) => {
+      const active = button.dataset.mobileTarget === target && isPhone;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+
+    sections.forEach((section) => {
+      section.classList.toggle("mobile-hidden", isPhone && section.dataset.mobileSection !== target);
+    });
+
+    if (!isPhone) return;
+
+    if (target === "calendar" && calendar) {
+      calendar.updateSize();
+    }
+
+    if (shouldScroll) {
+      document.querySelector(".mobile-view-switcher").scrollIntoView({ block: "start" });
+    }
+  }
+
+  buttons.forEach((button) => {
+    button.addEventListener("click", () => showMobileView(button.dataset.mobileTarget));
+  });
+
+  phoneView.addEventListener("change", () => {
+    const activeButton = buttons.find((button) => button.classList.contains("is-active"));
+    showMobileView(activeButton?.dataset.mobileTarget || "calendar", false);
+  });
+
+  showMobileView("calendar", false);
 }
 
 function bindDriverIdAutofill(driverInputId, driverIdInputId) {

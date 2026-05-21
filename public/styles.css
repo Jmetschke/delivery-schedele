@@ -25,6 +25,10 @@ body {
   color: #d1d5db;
 }
 
+.mobile-view-switcher {
+  display: none;
+}
+
 .layout {
   display: grid;
   grid-template-columns: 320px 1fr;
@@ -676,8 +680,10 @@ fieldset input {
 }
 
 @media (max-width: 640px) {
+  html,
   body {
     background: #fff;
+    overflow-x: hidden;
   }
 
   .topbar {
@@ -691,6 +697,47 @@ fieldset input {
   .topbar p {
     font-size: 14px;
     line-height: 1.35;
+  }
+
+  .mobile-view-switcher {
+    position: sticky;
+    top: 0;
+    left: 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    width: min(100%, 390px);
+    max-width: 100vw;
+    padding: 8px 12px;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .mobile-view-button {
+    min-width: 0;
+    min-height: 42px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #111827;
+    width: 100%;
+    padding: 8px 6px;
+    font-size: 13px;
+    line-height: 1.15;
+  }
+
+  .mobile-view-button.is-active {
+    border-color: #2563eb;
+    background: #dbeafe;
+    color: #1e40af;
+  }
+
+  .mobile-view-section.mobile-hidden {
+    display: none;
+  }
+
+  .task-reference-panel {
+    display: none;
   }
 
   .layout {
@@ -729,7 +776,15 @@ fieldset input {
     min-height: 0;
   }
 
+  #calendar,
+  #calendar .fc {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
   #calendar .fc-toolbar {
+    display: grid;
+    grid-template-columns: 1fr;
     align-items: stretch;
     gap: 8px;
   }
@@ -740,10 +795,20 @@ fieldset input {
     min-width: 0;
   }
 
+  #calendar .fc-toolbar-chunk:nth-child(2) {
+    justify-content: flex-start;
+  }
+
+  #calendar .fc-toolbar-chunk:nth-child(3) {
+    display: none;
+  }
+
   #calendar .fc-toolbar-title {
-    font-size: 18px;
+    font-size: 15px;
+    line-height: 1.15;
     white-space: normal;
-    text-align: center;
+    text-align: left;
+    overflow-wrap: anywhere;
   }
 
   #calendar .fc-button {
