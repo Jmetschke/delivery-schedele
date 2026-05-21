@@ -73,6 +73,7 @@ function setupHandlers() {
   document.getElementById("deleteDelivery").addEventListener("click", deleteDelivery);
   bindDriverIdAutofill("newDeliveryDriver", "newDriverIdNumber");
   bindDriverIdAutofill("deliveryDriver", "driverIdNumber");
+  bindTimeAutofill(["newDeliveryTime", "newPickupTime", "deliveryTime", "pickupTime"]);
   setupMobileViewSwitcher();
 }
 
@@ -129,6 +130,85 @@ function bindDriverIdAutofill(driverInputId, driverIdInputId) {
       driverIdInput.value = driverId;
     }
   });
+}
+
+function bindTimeAutofill(inputIds) {
+  inputIds.forEach((inputId) => {
+    const input = document.getElementById(inputId);
+
+    input.addEventListener("blur", () => normalizeTimeInput(input));
+    input.addEventListener("change", () => normalizeTimeInput(input));
+  });
+}
+
+function normalizeTimeInput(input) {
+  const normalized = normalizePartialTime(input.value);
+
+  if (normalized) {
+    input.value = normalized;
+  }
+
+  return input.value;
+}
+
+function normalizePartialTime(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  let text = raw.toUpperCase().replace(/\./g, "").replace(/\s+/g, "");
+  let meridiem = "AM";
+  const meridiemMatch = text.match(/(AM|A|PM|P)$/);
+
+  if (meridiemMatch) {
+    meridiem = meridiemMatch[1].startsWith("P") ? "PM" : "AM";
+    text = text.slice(0, -meridiemMatch[1].length);
+  }
+
+  if (!text) return raw;
+
+  let hour;
+  let minutes = 0;
+
+  if (text.includes(":")) {
+    const [hourText, minuteText = ""] = text.split(":");
+    hour = Number(hourText);
+    minutes = minuteText ? Number(minuteText.padEnd(2, "0").slice(0, 2)) : 0;
+  } else if (/^\d{3,4}$/.test(text)) {
+    hour = Number(text.slice(0, -2));
+    minutes = Number(text.slice(-2));
+  } else if (/^\d{1,2}$/.test(text)) {
+    hour = Number(text);
+  } else {
+    return raw;
+  }
+
+  if (!Number.isInteger(hour) || !Number.isInteger(minutes) || minutes < 0 || minutes > 59) {
+    return raw;
+  }
+
+  if (!meridiemMatch && hour > 12 && hour <= 23) {
+    meridiem = "PM";
+  }
+
+  hour = hour % 12 || 12;
+
+  return `${hour}:${String(minutes).padStart(2, "0")} ${meridiem}`;
+}
+
+function timeSortValue(value) {
+  const normalized = normalizePartialTime(value);
+  const match = normalized.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+
+  if (!match) return Number.MAX_SAFE_INTEGER;
+
+  let hour = Number(match[1]) % 12;
+  const minutes = Number(match[2]);
+
+  if (match[3].toUpperCase() === "PM") {
+    hour += 12;
+  }
+
+  return hour * 60 + minutes;
 }
 
 function selectedCheckboxValues(name) {
@@ -194,8 +274,8 @@ async function createDelivery(event) {
 
   const payload = {
     delivery_date: document.getElementById("newDeliveryDate").value,
-    delivery_time: document.getElementById("newDeliveryTime").value,
-    pickup_time: document.getElementById("newPickupTime").value,
+    delivery_time: normalizeTimeInput(document.getElementById("newDeliveryTime")),
+    pickup_time: normalizeTimeInput(document.getElementById("newPickupTime")),
     delivery_company: document.getElementById("newDeliveryCompany").value.trim(),
     drivers: document.getElementById("newDeliveryDriver").value.trim(),
     driver_id_number: document.getElementById("newDriverIdNumber").value.trim(),
@@ -298,7 +378,7 @@ function renderWeekSchedule() {
       const dayIso = isoDate(day);
       const dayDeliveries = deliveries
         .filter((delivery) => delivery.delivery_date === dayIso)
-        .sort((a, b) => String(a.delivery_time || "").localeCompare(String(b.delivery_time || "")));
+        .sort((a, b) => timeSortValue(a.delivery_time) - timeSortValue(b.delivery_time));
 
       return `
         <section class="week-day ${dayIso === todayIso ? "today" : ""}">
@@ -511,8 +591,8 @@ async function saveDelivery(event) {
     needs_display: document.getElementById("needsDisplay").value,
     date_order_received: document.getElementById("dateOrderReceived").value,
     delivery_date: document.getElementById("deliveryDate").value,
-    delivery_time: document.getElementById("deliveryTime").value,
-    pickup_time: document.getElementById("pickupTime").value,
+    delivery_time: normalizeTimeInput(document.getElementById("deliveryTime")),
+    pickup_time: normalizeTimeInput(document.getElementById("pickupTime")),
     delivery_company: document.getElementById("deliveryCompany").value.trim(),
     drivers: document.getElementById("deliveryDriver").value.trim(),
     driver_id_number: document.getElementById("driverIdNumber").value.trim(),
