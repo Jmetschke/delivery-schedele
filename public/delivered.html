@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Delivered Orders</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Delivered Orders</h1>
+      <p>Completed delivery records</p>
+    </div>
+    <div class="topbar-actions">
+      <a class="topbar-link-button" href="/">Back To Calendar</a>
+      <a class="topbar-link-button" href="https://manufacturing-tracker.onrender.com">Production Tracker</a>
+    </div>
+  </header>
+
+  <main class="delivered-page">
+    <section class="panel">
+      <div class="list-header">
+        <h2>Delivered Orders</h2>
+        <strong id="deliveredCount">0 delivered</strong>
+      </div>
+      <div id="deliveredOrdersList" class="delivery-list"></div>
+    </section>
+  </main>
+
+  <script src="/delivered.js"></script>
+</body>
+</html>

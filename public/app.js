@@ -51,7 +51,13 @@ function setupCalendar() {
     },
     eventSources: ["/api/calendar-events"],
     eventClassNames(info) {
-      return [driverColorClass(info.event.extendedProps.drivers)];
+      const classes = [driverColorClass(info.event.extendedProps.drivers)];
+
+      if (Number(info.event.extendedProps.delivered)) {
+        classes.push("delivered-calendar-event");
+      }
+
+      return classes;
     },
     eventContent(info) {
       return renderCalendarEvent(info.event);
@@ -109,7 +115,51 @@ function renderCalendarEvent(event) {
     wrapper.appendChild(detail);
   }
 
+  if (isDueDeliveryDate(event.startStr)) {
+    const label = document.createElement("label");
+    label.className = "calendar-delivered-check";
+    label.addEventListener("click", (event) => event.stopPropagation());
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = Boolean(Number(props.delivered));
+    checkbox.addEventListener("click", (event) => event.stopPropagation());
+    checkbox.addEventListener("change", (changeEvent) => {
+      changeEvent.stopPropagation();
+      setDeliveredStatus(event.id, checkbox.checked);
+    });
+
+    const text = document.createElement("span");
+    text.textContent = "Delivered";
+
+    label.appendChild(checkbox);
+    label.appendChild(text);
+    wrapper.appendChild(label);
+  }
+
   return { domNodes: [wrapper] };
+}
+
+function isDueDeliveryDate(dateText) {
+  if (!dateText) return false;
+  return dateText.slice(0, 10) <= isoDate(new Date());
+}
+
+async function setDeliveredStatus(id, delivered) {
+  const response = await fetch(`/api/deliveries/${id}/delivered`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ delivered })
+  });
+
+  if (!response.ok) {
+    alert("Delivered status did not save.");
+    calendar.refetchEvents();
+    return;
+  }
+
+  await loadDeliveries();
+  calendar.refetchEvents();
 }
 
 function setupHandlers() {

@@ -29,6 +29,13 @@ body {
   color: #d1d5db;
 }
 
+.topbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .topbar-link-button {
   display: inline-flex;
   align-items: center;
@@ -331,6 +338,38 @@ body {
   line-height: 1.18;
 }
 
+.calendar-delivered-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  color: #000;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.calendar-delivered-check input {
+  width: 14px;
+  height: 14px;
+  min-height: 0;
+  margin: 0;
+}
+
+#calendar .fc-event.delivered-calendar-event {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+  filter: grayscale(1);
+  opacity: 0.72;
+}
+
+#calendar .fc-event.delivered-calendar-event .fc-event-main,
+#calendar .fc-event.delivered-calendar-event .calendar-event-content,
+#calendar .fc-event.delivered-calendar-event .calendar-event-delivery-time,
+#calendar .fc-event.delivered-calendar-event .calendar-event-store,
+#calendar .fc-event.delivered-calendar-event .calendar-event-detail {
+  color: #4b5563;
+}
+
 #calendar .fc-daygrid-event-harness {
   margin-top: 2px;
 }
@@ -377,6 +416,16 @@ body {
 
 .list-panel {
   grid-column: 1 / -1;
+}
+
+.delivered-page {
+  padding: 20px;
+}
+
+.delivered-meta {
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 button {
@@ -844,6 +893,11 @@ fieldset input {
   }
 
   .topbar-link-button {
+    width: 100%;
+  }
+
+  .topbar-actions {
+    display: grid;
     width: 100%;
   }
 

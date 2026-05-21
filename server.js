@@ -372,7 +372,7 @@ async function syncChecklistDefinitions() {
 
 app.get("/api/deliveries", async (req, res) => {
   try {
-    const { date, status, driver } = req.query;
+    const { date, status, driver, delivered } = req.query;
 
     const filters = [];
     const params = [];
@@ -390,6 +390,11 @@ app.get("/api/deliveries", async (req, res) => {
     if (driver) {
       filters.push("drivers LIKE ?");
       params.push(`%${driver}%`);
+    }
+
+    if (delivered !== undefined) {
+      filters.push("COALESCE(delivered, 0) = ?");
+      params.push(delivered === "1" || delivered === "true" ? 1 : 0);
     }
 
     const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
@@ -441,7 +446,7 @@ app.get("/api/calendar-events", async (req, res) => {
     const rows = await all(
       `
         SELECT id, store, delivery_date, pickup_time, delivery_time,
-               delivery_company, drivers, van, companies_delivering, status
+               delivery_company, drivers, van, companies_delivering, status, delivered
         FROM deliveries
         WHERE delivery_date IS NOT NULL AND delivery_date != ''
           AND delivery_time IS NOT NULL AND delivery_time != ''
@@ -474,7 +479,8 @@ app.get("/api/calendar-events", async (req, res) => {
         drivers: row.drivers,
         van: row.van,
         companies_delivering: row.companies_delivering,
-        status: row.status
+        status: row.status,
+        delivered: row.delivered
       }
     }));
 
@@ -640,6 +646,32 @@ app.patch("/api/deliveries/:id", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Unable to save delivery" });
+  }
+});
+
+app.patch("/api/deliveries/:id/delivered", async (req, res) => {
+  try {
+    const delivered = req.body.delivered ? 1 : 0;
+    const delivery = await get("SELECT id FROM deliveries WHERE id = ?", [req.params.id]);
+
+    if (!delivery) {
+      return res.status(404).json({ error: "Delivery not found" });
+    }
+
+    await run(
+      `
+        UPDATE deliveries
+        SET delivered = ?, delivered_at = ${delivered ? "CURRENT_TIMESTAMP" : "NULL"},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `,
+      [delivered, req.params.id]
+    );
+
+    res.json({ ok: true, delivered: Boolean(delivered) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Unable to save delivery status" });
   }
 });
 

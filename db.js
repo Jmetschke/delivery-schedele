@@ -140,6 +140,8 @@ db.serialize(() => {
       driver_id_number TEXT,
       van TEXT,
       license_plate TEXT,
+      delivered INTEGER DEFAULT 0,
+      delivered_at TEXT,
       status TEXT DEFAULT 'Not Started',
       notes TEXT DEFAULT '',
       source_sheet TEXT,
@@ -162,7 +164,9 @@ db.serialize(() => {
       ["companies_delivering", "TEXT"],
       ["delivery_company", "TEXT"],
       ["driver_id_number", "TEXT"],
-      ["license_plate", "TEXT"]
+      ["license_plate", "TEXT"],
+      ["delivered", "INTEGER DEFAULT 0"],
+      ["delivered_at", "TEXT"]
     ];
 
     additions.forEach(([name, type]) => {
