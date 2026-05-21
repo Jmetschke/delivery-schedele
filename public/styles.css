@@ -260,6 +260,27 @@ body {
   line-height: 1.18;
 }
 
+.calendar-event-content {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.calendar-event-delivery-time,
+.calendar-event-store {
+  color: #000;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.calendar-event-detail {
+  color: #000;
+  font-size: 10px;
+  line-height: 1.18;
+}
+
 #calendar .fc-daygrid-event-harness {
   margin-top: 2px;
 }

@@ -469,6 +469,7 @@ app.get("/api/calendar-events", async (req, res) => {
       title: calendarTitle(row),
       start: row.delivery_date,
       extendedProps: {
+        store: row.store,
         pickup_time: row.pickup_time,
         delivery_time: row.delivery_time,
         delivery_company: row.delivery_company,

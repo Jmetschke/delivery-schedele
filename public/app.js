@@ -53,6 +53,9 @@ function setupCalendar() {
     eventClassNames(info) {
       return [driverColorClass(info.event.extendedProps.drivers)];
     },
+    eventContent(info) {
+      return renderCalendarEvent(info.event);
+    },
     eventClick(info) {
       openDelivery(info.event.id);
     },
@@ -73,6 +76,40 @@ function setupCalendar() {
   });
 
   calendar.render();
+}
+
+function renderCalendarEvent(event) {
+  const props = event.extendedProps;
+  const wrapper = document.createElement("div");
+  wrapper.className = "calendar-event-content";
+
+  const details = [
+    props.pickup_time ? `PU ${props.pickup_time}` : "",
+    props.delivery_company ? `Company: ${props.delivery_company}` : "",
+    props.drivers ? `Driver: ${props.drivers}` : "",
+    props.van ? `Van: ${props.van}` : ""
+  ].filter(Boolean);
+
+  if (props.delivery_time) {
+    const deliveryTime = document.createElement("span");
+    deliveryTime.className = "calendar-event-delivery-time";
+    deliveryTime.textContent = `DEL ${props.delivery_time}`;
+    wrapper.appendChild(deliveryTime);
+  }
+
+  const store = document.createElement("span");
+  store.className = "calendar-event-store";
+  store.textContent = props.store || event.title || "Delivery";
+  wrapper.appendChild(store);
+
+  if (details.length) {
+    const detail = document.createElement("span");
+    detail.className = "calendar-event-detail";
+    detail.textContent = details.join(" | ");
+    wrapper.appendChild(detail);
+  }
+
+  return { domNodes: [wrapper] };
 }
 
 function setupHandlers() {
