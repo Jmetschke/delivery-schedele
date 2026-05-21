@@ -270,6 +270,7 @@ body {
 }
 
 button {
+  min-height: 44px;
   border: 0;
   border-radius: 8px;
   padding: 10px 14px;
@@ -287,6 +288,7 @@ input,
 select,
 textarea {
   width: 100%;
+  min-height: 44px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   padding: 9px;
@@ -344,11 +346,13 @@ fieldset label {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-height: 32px;
   font-weight: 600;
 }
 
 fieldset input {
-  width: auto;
+  width: 18px;
+  height: 18px;
   margin: 0;
 }
 
@@ -613,7 +617,9 @@ fieldset input {
 }
 
 .check-item input {
-  width: auto;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
 }
 
 .check-item.inactive {
@@ -635,6 +641,7 @@ fieldset input {
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;
+    padding: 16px;
   }
 
   .week-card,
@@ -645,6 +652,10 @@ fieldset input {
 
   .week-schedule {
     grid-template-columns: 1fr;
+  }
+
+  .week-day {
+    min-height: auto;
   }
 
   .week-day-deliveries {
@@ -661,5 +672,138 @@ fieldset input {
 
   .delivery-form {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    background: #fff;
+  }
+
+  .topbar {
+    padding: 16px;
+  }
+
+  .topbar h1 {
+    font-size: 24px;
+  }
+
+  .topbar p {
+    font-size: 14px;
+    line-height: 1.35;
+  }
+
+  .layout {
+    gap: 12px;
+    padding: 12px;
+  }
+
+  .panel,
+  .week-card,
+  .calendar-card {
+    padding: 14px;
+    box-shadow: none;
+  }
+
+  .week-card {
+    min-height: 0;
+  }
+
+  .week-header,
+  .list-header {
+    display: grid;
+    gap: 10px;
+  }
+
+  .week-header h2 {
+    font-size: 22px;
+  }
+
+  .week-header > strong,
+  .list-header select {
+    width: 100%;
+    max-width: none;
+  }
+
+  .calendar-card {
+    min-height: 0;
+  }
+
+  #calendar .fc-toolbar {
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  #calendar .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  #calendar .fc-toolbar-title {
+    font-size: 18px;
+    white-space: normal;
+    text-align: center;
+  }
+
+  #calendar .fc-button {
+    padding: 7px 9px;
+    font-size: 13px;
+  }
+
+  #calendar .fc-list-event-title,
+  #calendar .fc-list-event-time {
+    color: #000;
+    overflow-wrap: anywhere;
+  }
+
+  fieldset {
+    grid-template-columns: 1fr;
+  }
+
+  fieldset label {
+    min-height: 40px;
+  }
+
+  .summary {
+    grid-template-columns: 1fr;
+  }
+
+  .delivery-row-main {
+    gap: 8px;
+  }
+
+  .task-pill {
+    max-width: 100%;
+  }
+
+  .drawer-content {
+    width: 100%;
+    padding: 18px 14px 24px;
+  }
+
+  .close-btn {
+    position: sticky;
+    top: 0;
+    margin-left: auto;
+    display: block;
+    z-index: 1;
+  }
+
+  .drawer-actions {
+    display: grid;
+  }
+
+  .drawer-actions button {
+    width: 100%;
+  }
+
+  .check-item {
+    align-items: flex-start;
+  }
+
+  .inactive-note {
+    margin-left: 0;
+    overflow-wrap: anywhere;
   }
 }

@@ -29,16 +29,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function setupCalendar() {
   const calendarEl = document.getElementById("calendar");
+  const phoneView = window.matchMedia("(max-width: 640px)");
 
   calendar = new FullCalendar.Calendar(calendarEl, {
-    initialView: "dayGridMonth",
+    initialView: phoneView.matches ? "listWeek" : "dayGridMonth",
     height: "auto",
+    headerToolbar: {
+      left: "prev,next today",
+      center: "title",
+      right: phoneView.matches ? "" : "dayGridMonth,dayGridWeek"
+    },
     eventSources: ["/api/calendar-events"],
     eventClassNames(info) {
       return [driverColorClass(info.event.extendedProps.drivers)];
     },
     eventClick(info) {
       openDelivery(info.event.id);
+    },
+    windowResize() {
+      const isPhone = phoneView.matches;
+      calendar.setOption("headerToolbar", {
+        left: "prev,next today",
+        center: "title",
+        right: isPhone ? "" : "dayGridMonth,dayGridWeek"
+      });
+
+      if (isPhone && calendar.view.type !== "listWeek") {
+        calendar.changeView("listWeek");
+      } else if (!isPhone && calendar.view.type === "listWeek") {
+        calendar.changeView("dayGridMonth");
+      }
     }
   });
 
