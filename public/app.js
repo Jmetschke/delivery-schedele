@@ -274,6 +274,16 @@ function timeSortValue(value) {
   return hour * 60 + minutes;
 }
 
+function compareWeekDeliveries(a, b) {
+  const driverCompare = String(a.drivers || "")
+    .trim()
+    .localeCompare(String(b.drivers || "").trim(), undefined, { sensitivity: "base" });
+
+  if (driverCompare !== 0) return driverCompare;
+
+  return timeSortValue(a.delivery_time) - timeSortValue(b.delivery_time);
+}
+
 function selectedCheckboxValues(name) {
   return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(
     (input) => input.value
@@ -442,7 +452,7 @@ function renderWeekSchedule() {
       const dayIso = isoDate(day);
       const dayDeliveries = deliveries
         .filter((delivery) => delivery.delivery_date === dayIso)
-        .sort((a, b) => timeSortValue(a.delivery_time) - timeSortValue(b.delivery_time));
+        .sort(compareWeekDeliveries);
 
       return `
         <section class="week-day ${dayIso === todayIso ? "today" : ""}">
