@@ -21,6 +21,16 @@ const DRIVER_ID_BY_NAME = {
   "TED STEINBRECHER": "TRAG10001542"
 };
 
+const LICENSE_PLATE_BY_VAN = {
+  "Audi SQ5": "EB63835",
+  "Dodge Ram Promaster 3500": "197 361C",
+  "Ford Escape": "EZ65313",
+  "Ford Transit Connect": "2992940B",
+  "GMC Savanah": "3703270",
+  "Hyundai Santa Fe": "DB53579",
+  "Toyota Corolla": "EL90538"
+};
+
 document.addEventListener("DOMContentLoaded", () => {
   setupCalendar();
   setupHandlers();
@@ -73,6 +83,8 @@ function setupHandlers() {
   document.getElementById("deleteDelivery").addEventListener("click", deleteDelivery);
   bindDriverIdAutofill("newDeliveryDriver", "newDriverIdNumber");
   bindDriverIdAutofill("deliveryDriver", "driverIdNumber");
+  bindLicensePlateAutofill("newDeliveryVan", "newLicensePlate");
+  bindLicensePlateAutofill("deliveryVan", "licensePlate");
   bindTimeAutofill(["newDeliveryTime", "newPickupTime", "deliveryTime", "pickupTime"]);
   setupMobileViewSwitcher();
 }
@@ -128,6 +140,20 @@ function bindDriverIdAutofill(driverInputId, driverIdInputId) {
 
     if (driverId) {
       driverIdInput.value = driverId;
+    }
+  });
+}
+
+function bindLicensePlateAutofill(vanInputId, plateInputId) {
+  const vanInput = document.getElementById(vanInputId);
+  const plateInput = document.getElementById(plateInputId);
+
+  vanInput.addEventListener("change", () => {
+    const selectedVan = vanInput.value.trim();
+    const licensePlate = LICENSE_PLATE_BY_VAN[selectedVan];
+
+    if (licensePlate) {
+      plateInput.value = licensePlate;
     }
   });
 }
@@ -280,6 +306,7 @@ async function createDelivery(event) {
     drivers: document.getElementById("newDeliveryDriver").value.trim(),
     driver_id_number: document.getElementById("newDriverIdNumber").value.trim(),
     van: document.getElementById("newDeliveryVan").value.trim(),
+    license_plate: document.getElementById("newLicensePlate").value.trim(),
     store: document.getElementById("newStore").value.trim(),
     dispensary_location: document.getElementById("newDispensaryLocation").value.trim(),
     dispensary_address: document.getElementById("newDispensaryAddress").value.trim(),
@@ -517,6 +544,7 @@ async function openDelivery(id) {
   document.getElementById("deliveryDriver").value = d.drivers || "";
   document.getElementById("driverIdNumber").value = d.driver_id_number || "";
   document.getElementById("deliveryVan").value = d.van || "";
+  document.getElementById("licensePlate").value = d.license_plate || "";
   document.getElementById("status").value = d.status || "Not Started";
   document.getElementById("notes").value = d.notes || "";
 
@@ -597,6 +625,7 @@ async function saveDelivery(event) {
     drivers: document.getElementById("deliveryDriver").value.trim(),
     driver_id_number: document.getElementById("driverIdNumber").value.trim(),
     van: document.getElementById("deliveryVan").value.trim(),
+    license_plate: document.getElementById("licensePlate").value.trim(),
     status: document.getElementById("status").value,
     notes: document.getElementById("notes").value
   };

@@ -517,6 +517,7 @@ app.post("/api/deliveries", async (req, res) => {
       drivers,
       driver_id_number,
       van,
+      license_plate,
       border_store,
       needs_display,
       date_order_received,
@@ -533,10 +534,10 @@ app.post("/api/deliveries", async (req, res) => {
       `
         INSERT INTO deliveries (
           store, dispensary_location, dispensary_address, companies_delivering,
-          delivery_company, drivers, driver_id_number, van, border_store, needs_display,
+          delivery_company, drivers, driver_id_number, van, license_plate, border_store, needs_display,
           date_order_received, delivery_date, delivery_time, pickup_time, status
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Not Started')
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Not Started')
       `,
       [
         store,
@@ -547,6 +548,7 @@ app.post("/api/deliveries", async (req, res) => {
         drivers,
         driver_id_number,
         van,
+        license_plate,
         border_store,
         needs_display,
         date_order_received,
@@ -592,6 +594,7 @@ app.patch("/api/deliveries/:id", async (req, res) => {
       drivers = "",
       driver_id_number = "",
       van = "",
+      license_plate = "",
       status,
       notes
     } = req.body;
@@ -603,7 +606,8 @@ app.patch("/api/deliveries/:id", async (req, res) => {
             companies_delivering = ?, delivery_company = ?, border_store = ?,
             needs_display = ?, date_order_received = ?,
             product_type = ?, delivery_type = ?, delivery_date = ?, pickup_time = ?,
-            delivery_time = ?, drivers = ?, driver_id_number = ?, van = ?, status = ?, notes = ?,
+            delivery_time = ?, drivers = ?, driver_id_number = ?, van = ?, license_plate = ?,
+            status = ?, notes = ?,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `,
@@ -624,6 +628,7 @@ app.patch("/api/deliveries/:id", async (req, res) => {
         drivers,
         driver_id_number,
         van,
+        license_plate,
         status,
         notes,
         req.params.id

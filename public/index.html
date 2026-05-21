@@ -50,6 +50,16 @@
       <option value="TED STEINBRECHER"></option>
     </datalist>
 
+    <datalist id="deliveryVanOptions">
+      <option value="Audi SQ5"></option>
+      <option value="Dodge Ram Promaster 3500"></option>
+      <option value="Ford Escape"></option>
+      <option value="Ford Transit Connect"></option>
+      <option value="GMC Savanah"></option>
+      <option value="Hyundai Santa Fe"></option>
+      <option value="Toyota Corolla"></option>
+    </datalist>
+
     <datalist id="dispensaryNameOptions">
       <option value="Altius Carol Stream"></option>
       <option value="Altius Orland Hills"></option>
@@ -252,7 +262,11 @@
         </label>
 
         <label>Delivery Van <span class="required">Required</span>
-          <input id="newDeliveryVan" required />
+          <input id="newDeliveryVan" list="deliveryVanOptions" required />
+        </label>
+
+        <label>Plate #
+          <input id="newLicensePlate" />
         </label>
 
         <label>Dispensary Name <span class="required">Required</span>
@@ -422,7 +436,11 @@
         </label>
 
         <label>Delivery Van <span class="required">Required</span>
-          <input id="deliveryVan" required />
+          <input id="deliveryVan" list="deliveryVanOptions" required />
+        </label>
+
+        <label>Plate #
+          <input id="licensePlate" />
         </label>
 
         <label>Status
