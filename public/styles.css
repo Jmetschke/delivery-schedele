@@ -849,9 +849,22 @@ fieldset input {
 
   .panel,
   .week-card,
-  .calendar-card {
+  .calendar-card,
+  .unscheduled-panel {
     padding: 14px;
     box-shadow: none;
+  }
+
+  .unscheduled-panel {
+    order: 2;
+  }
+
+  .list-panel {
+    order: 1;
+  }
+
+  .calendar-card {
+    order: 3;
   }
 
   .week-card {

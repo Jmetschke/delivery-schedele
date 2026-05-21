@@ -141,7 +141,8 @@ function setupMobileViewSwitcher() {
     });
 
     sections.forEach((section) => {
-      section.classList.toggle("mobile-hidden", isPhone && section.dataset.mobileSection !== target);
+      const sectionViews = String(section.dataset.mobileSection || "").split(/\s+/);
+      section.classList.toggle("mobile-hidden", isPhone && !sectionViews.includes(target));
     });
 
     if (!isPhone) return;
