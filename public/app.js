@@ -389,6 +389,7 @@ async function loadDeliveries() {
   deliveries = await response.json();
   renderSummary();
   renderWeekSchedule();
+  renderUnscheduledOrders();
   renderDeliveryList();
 }
 
@@ -436,7 +437,7 @@ function renderWeekSchedule() {
   const end = days[6];
   const todayIso = isoDate(new Date());
   const weekDeliveries = deliveries.filter((delivery) =>
-    days.some((day) => delivery.delivery_date === isoDate(day))
+    isScheduledDelivery(delivery) && days.some((day) => delivery.delivery_date === isoDate(day))
   );
 
   range.textContent = `${formatWeekDate(start, {
@@ -451,7 +452,7 @@ function renderWeekSchedule() {
     .map((day) => {
       const dayIso = isoDate(day);
       const dayDeliveries = deliveries
-        .filter((delivery) => delivery.delivery_date === dayIso)
+        .filter((delivery) => isScheduledDelivery(delivery) && delivery.delivery_date === dayIso)
         .sort(compareWeekDeliveries);
 
       return `
@@ -499,6 +500,48 @@ function renderWeekDelivery(delivery) {
       <span class="badge ${badgeClass}">${escapeHtml(delivery.status || "Not Started")}</span>
     </button>
   `;
+}
+
+function isScheduledDelivery(delivery) {
+  return Boolean(
+    String(delivery.delivery_date || "").trim() && String(delivery.delivery_time || "").trim()
+  );
+}
+
+function missingScheduleText(delivery) {
+  const missing = [];
+
+  if (!String(delivery.delivery_date || "").trim()) missing.push("date");
+  if (!String(delivery.delivery_time || "").trim()) missing.push("delivery time");
+
+  return missing.length ? `Needs ${missing.join(" and ")}` : "";
+}
+
+function renderUnscheduledOrders() {
+  const list = document.getElementById("unscheduledList");
+  const unscheduled = deliveries
+    .filter((delivery) => !isScheduledDelivery(delivery))
+    .sort((a, b) =>
+      String(a.store || "").localeCompare(String(b.store || ""), undefined, { sensitivity: "base" })
+    );
+
+  if (!unscheduled.length) {
+    list.innerHTML = "<p>No orders waiting to be scheduled.</p>";
+    return;
+  }
+
+  list.innerHTML = unscheduled
+    .map(
+      (delivery) => `
+        <button class="unscheduled-order ${driverColorClass(delivery.drivers)}" type="button" onclick="openDelivery(${delivery.id})">
+          <strong>${escapeHtml(delivery.store)}</strong>
+          <span>${escapeHtml(delivery.dispensary_location || delivery.dispensary_address || "")}</span>
+          <span>${escapeHtml([delivery.delivery_company, delivery.drivers ? `Driver: ${delivery.drivers}` : "", delivery.van ? `Van: ${delivery.van}` : ""].filter(Boolean).join(" / "))}</span>
+          <em>${escapeHtml(missingScheduleText(delivery))}</em>
+        </button>
+      `
+    )
+    .join("");
 }
 
 function renderDeliveryList() {

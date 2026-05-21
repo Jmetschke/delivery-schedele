@@ -238,16 +238,16 @@
     <section class="panel entry-panel mobile-view-section" data-mobile-section="entry">
       <h2>New Delivery</h2>
       <form id="newDeliveryForm" class="new-delivery-form">
-        <label>Delivery Date <span class="required">Required</span>
-          <input id="newDeliveryDate" type="date" required />
+        <label>Delivery Date
+          <input id="newDeliveryDate" type="date" />
         </label>
 
-        <label>Delivery Time <span class="required">Required</span>
-          <input id="newDeliveryTime" type="text" inputmode="text" placeholder="8:00 AM" autocomplete="off" required />
+        <label>Delivery Time
+          <input id="newDeliveryTime" type="text" inputmode="text" placeholder="8:00 AM" autocomplete="off" />
         </label>
 
-        <label>Pick Up Time <span class="required">Required</span>
-          <input id="newPickupTime" type="text" inputmode="text" placeholder="8:00 AM" autocomplete="off" required />
+        <label>Pick Up Time
+          <input id="newPickupTime" type="text" inputmode="text" placeholder="8:00 AM" autocomplete="off" />
         </label>
 
         <label>Delivery Company <span class="required">Required</span>
@@ -351,6 +351,11 @@
       <div id="calendar"></div>
     </section>
 
+    <section class="panel unscheduled-panel mobile-view-section" data-mobile-section="calendar">
+      <h2>Orders To Be Scheduled</h2>
+      <div id="unscheduledList" class="unscheduled-list"></div>
+    </section>
+
     <section class="panel list-panel mobile-view-section" data-mobile-section="list">
       <div class="list-header">
         <h2>Delivery List</h2>
@@ -412,16 +417,16 @@
           <input id="dateOrderReceived" type="date" />
         </label>
 
-        <label>Delivery Date <span class="required">Required</span>
-          <input id="deliveryDate" type="date" required />
+        <label>Delivery Date
+          <input id="deliveryDate" type="date" />
         </label>
 
-        <label>Delivery Time <span class="required">Required</span>
-          <input id="deliveryTime" type="text" inputmode="text" placeholder="8:00 AM" autocomplete="off" required />
+        <label>Delivery Time
+          <input id="deliveryTime" type="text" inputmode="text" placeholder="8:00 AM" autocomplete="off" />
         </label>
 
-        <label>Pick Up Time <span class="required">Required</span>
-          <input id="pickupTime" type="text" inputmode="text" placeholder="8:00 AM" autocomplete="off" required />
+        <label>Pick Up Time
+          <input id="pickupTime" type="text" inputmode="text" placeholder="8:00 AM" autocomplete="off" />
         </label>
 
         <label>Delivery Company <span class="required">Required</span>

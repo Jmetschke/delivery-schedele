@@ -167,9 +167,6 @@ function hasRequiredDeliveryFields(delivery) {
     delivery.store,
     delivery.dispensary_location,
     delivery.companies_delivering,
-    delivery.delivery_date,
-    delivery.delivery_time,
-    delivery.pickup_time,
     delivery.delivery_company,
     delivery.drivers,
     delivery.van
@@ -447,6 +444,7 @@ app.get("/api/calendar-events", async (req, res) => {
                delivery_company, drivers, van, companies_delivering, status
         FROM deliveries
         WHERE delivery_date IS NOT NULL AND delivery_date != ''
+          AND delivery_time IS NOT NULL AND delivery_time != ''
         ORDER BY delivery_date, delivery_time
       `
     );
@@ -527,8 +525,8 @@ app.post("/api/deliveries", async (req, res) => {
       pickup_time
     } = req.body;
 
-    if (!store || !delivery_date) {
-      return res.status(400).json({ error: "Date and dispensary name are required" });
+    if (!store) {
+      return res.status(400).json({ error: "Dispensary name is required" });
     }
 
     const result = await run(
