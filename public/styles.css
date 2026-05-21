@@ -191,11 +191,22 @@ body {
   grid-column: 2;
   grid-row: 2 / span 2;
   min-height: 650px;
+  overflow-x: auto;
+}
+
+#calendar {
+  min-width: 860px;
+}
+
+#calendar .fc-daygrid-day-frame {
+  min-height: 132px;
 }
 
 #calendar .fc-daygrid-event,
 #calendar .fc-daygrid-dot-event {
   align-items: flex-start;
+  font-size: 11px;
+  line-height: 1.18;
   white-space: normal;
 }
 
@@ -222,7 +233,7 @@ body {
 
 #calendar .fc-event-title {
   display: block;
-  line-height: 1.25;
+  line-height: 1.18;
 }
 
 #calendar .fc-daygrid-event-harness {
@@ -257,7 +268,7 @@ body {
 #calendar .fc-daygrid-dot-event.driver-unassigned {
   border-left: 4px solid var(--driver-color);
   background: var(--driver-bg);
-  padding: 2px 4px;
+  padding: 3px 4px;
 }
 
 #calendar .fc-daygrid-dot-event.driver-color-0 .fc-daygrid-event-dot,
@@ -778,6 +789,7 @@ fieldset input {
 
   #calendar,
   #calendar .fc {
+    min-width: 0;
     max-width: 100%;
     overflow-x: hidden;
   }
