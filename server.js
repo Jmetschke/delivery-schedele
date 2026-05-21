@@ -692,6 +692,45 @@ app.patch("/api/checklist/:id", async (req, res) => {
   }
 });
 
+app.patch("/api/deliveries/:id/checklist/check-all", async (req, res) => {
+  try {
+    const delivery = await get("SELECT * FROM deliveries WHERE id = ?", [req.params.id]);
+
+    if (!delivery) {
+      return res.status(404).json({ error: "Delivery not found" });
+    }
+
+    const checklistItems = await all(
+      "SELECT id, item_key FROM delivery_checklist WHERE delivery_id = ?",
+      [req.params.id]
+    );
+    const activeIds = checklistItems
+      .filter((item) => isChecklistItemActive(item.item_key, delivery.companies_delivering))
+      .map((item) => item.id);
+
+    if (activeIds.length) {
+      const placeholders = activeIds.map(() => "?").join(",");
+      await run(
+        `UPDATE delivery_checklist SET completed = 1 WHERE delivery_id = ? AND id IN (${placeholders})`,
+        [req.params.id, ...activeIds]
+      );
+    }
+
+    const checklistStatus = await updateDeliveryStatusFromChecklist(req.params.id);
+
+    res.json({
+      ok: true,
+      delivery_id: Number(req.params.id),
+      status: checklistStatus.status,
+      total_count: checklistStatus.total_count,
+      completed_count: checklistStatus.completed_count
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Unable to save checklist items" });
+  }
+});
+
 app.post("/api/import", upload.single("schedule"), async (req, res) => {
   try {
     if (!req.file) {

@@ -118,6 +118,7 @@ function setupHandlers() {
   document.getElementById("closeDrawer").addEventListener("click", closeDrawer);
   document.getElementById("deliveryForm").addEventListener("submit", saveDelivery);
   document.getElementById("deleteDelivery").addEventListener("click", deleteDelivery);
+  document.getElementById("checkAllChecklist").addEventListener("click", checkAllChecklistItems);
   bindDriverIdAutofill("newDeliveryDriver", "newDriverIdNumber");
   bindDriverIdAutofill("deliveryDriver", "driverIdNumber");
   bindLicensePlateAutofill("newDeliveryVan", "newLicensePlate");
@@ -687,6 +688,27 @@ async function saveChecklistItem(id, completed) {
 
   const data = await response.json();
   document.getElementById("status").value = data.status || "Not Started";
+  await loadDeliveries();
+  calendar.refetchEvents();
+}
+
+async function checkAllChecklistItems() {
+  const id = document.getElementById("deliveryId").value;
+
+  if (!id) return;
+
+  const response = await fetch(`/api/deliveries/${id}/checklist/check-all`, {
+    method: "PATCH"
+  });
+
+  if (!response.ok) {
+    alert("Checklist items did not save.");
+    return;
+  }
+
+  const data = await response.json();
+  document.getElementById("status").value = data.status || "Not Started";
+  await openDelivery(id);
   await loadDeliveries();
   calendar.refetchEvents();
 }

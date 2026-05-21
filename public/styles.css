@@ -700,6 +700,31 @@ fieldset input {
   background: #b91c1c;
 }
 
+.secondary-btn {
+  background: #374151;
+}
+
+.secondary-btn:hover {
+  background: #1f2937;
+}
+
+.checklist-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.checklist-header h3 {
+  margin: 0;
+}
+
+.checklist-header button {
+  min-height: 38px;
+  padding: 8px 12px;
+}
+
 .checklist {
   display: grid;
   gap: 8px;
