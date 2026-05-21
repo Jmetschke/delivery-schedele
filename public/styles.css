@@ -75,6 +75,18 @@ body {
   border: 2px solid #bfdbfe;
 }
 
+.entry-panel {
+  grid-column: 2 / -1;
+}
+
+.new-delivery-form {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.new-delivery-form .wide-field {
+  grid-column: span 2;
+}
+
 .week-header {
   display: flex;
   align-items: flex-start;
@@ -213,14 +225,14 @@ body {
 
 .calendar-card {
   grid-column: 2;
-  grid-row: 2 / span 2;
+  grid-row: 3;
   min-height: 650px;
   overflow-x: auto;
 }
 
 .unscheduled-panel {
   grid-column: 3;
-  grid-row: 2 / span 2;
+  grid-row: 3;
   align-self: start;
 }
 
@@ -768,6 +780,7 @@ fieldset input {
   }
 
   .week-card,
+  .entry-panel,
   .calendar-card,
   .unscheduled-panel {
     grid-column: 1;
@@ -796,6 +809,14 @@ fieldset input {
 
   .delivery-form {
     grid-template-columns: 1fr;
+  }
+
+  .new-delivery-form {
+    grid-template-columns: 1fr;
+  }
+
+  .new-delivery-form .wide-field {
+    grid-column: auto;
   }
 }
 
