@@ -3,9 +3,8 @@ const fs = require("fs");
 const sqlite3 = require("sqlite3").verbose();
 const { createClient } = require("@libsql/client");
 
-const tursoUrl = process.env.TURSO_DATABASE_URL || process.env.LIBSQL_DATABASE_URL;
-const tursoAuthToken =
-  process.env.TURSO_AUTH_TOKEN || process.env.TURSO_DATABASE_TOKEN || process.env.LIBSQL_AUTH_TOKEN;
+const tursoUrl = process.env.TURSO_DATABASE_URL;
+const tursoAuthToken = process.env.TURSO_DATABASE_TOKEN;
 
 function createTursoDatabase(url, authToken) {
   const client = createClient({

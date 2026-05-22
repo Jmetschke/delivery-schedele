@@ -80,6 +80,12 @@ function setupCalendar() {
     eventClick(info) {
       openDelivery(info.event.id);
     },
+    datesSet() {
+      updateCalendarWeekendColumns();
+    },
+    eventsSet() {
+      updateCalendarWeekendColumns();
+    },
     windowResize() {
       const isPhone = phoneView.matches;
       calendar.setOption("headerToolbar", {
@@ -179,11 +185,11 @@ async function setDeliveredStatus(id, delivered) {
 
 function setupHandlers() {
   document.getElementById("newDeliveryForm").addEventListener("submit", createDelivery);
+  document.getElementById("spreadsheetImportForm").addEventListener("submit", importSpreadsheet);
   document.getElementById("statusFilter").addEventListener("change", renderDeliveryList);
   document.getElementById("closeDrawer").addEventListener("click", closeDrawer);
   document.getElementById("deliveryForm").addEventListener("submit", saveDelivery);
   document.getElementById("deleteDelivery").addEventListener("click", deleteDelivery);
-  document.getElementById("checkAllChecklist").addEventListener("click", checkAllChecklistItems);
   bindDriverIdAutofill("newDeliveryDriver", "newDriverIdNumber");
   bindDriverIdAutofill("deliveryDriver", "driverIdNumber");
   bindLicensePlateAutofill("newDeliveryVan", "newLicensePlate");
@@ -370,20 +376,6 @@ function setSelectedCheckboxValues(name, values) {
   });
 }
 
-function selectedCompanies(value) {
-  return new Set(
-    String(value || "")
-      .split(",")
-      .map((company) => company.trim().toUpperCase())
-      .filter(Boolean)
-  );
-}
-
-function isChecklistItemActive(item, companiesDelivering) {
-  if (!["sb_labels_printed", "sb_labels_applied"].includes(item.item_key)) return true;
-  return selectedCompanies(companiesDelivering).has("SB");
-}
-
 function driverColorClass(driver) {
   const name = String(driver || "").trim().toLowerCase();
 
@@ -451,6 +443,38 @@ async function createDelivery(event) {
   calendar.refetchEvents();
 }
 
+async function importSpreadsheet(event) {
+  event.preventDefault();
+
+  const form = event.currentTarget;
+  const fileInput = document.getElementById("spreadsheetImportFile");
+  const result = document.getElementById("spreadsheetImportResult");
+
+  if (!fileInput.files.length) {
+    result.textContent = "Choose a spreadsheet to upload.";
+    return;
+  }
+
+  result.textContent = "Uploading spreadsheet...";
+
+  const formData = new FormData(form);
+  const response = await fetch("/api/import", {
+    method: "POST",
+    body: formData
+  });
+  const data = await response.json();
+
+  if (!response.ok) {
+    result.textContent = data.error || "Spreadsheet import failed.";
+    return;
+  }
+
+  result.textContent = data.message || "Spreadsheet imported.";
+  form.reset();
+  await loadDeliveries();
+  calendar.refetchEvents();
+}
+
 async function loadDeliveries() {
   const response = await fetch("/api/deliveries");
   deliveries = await response.json();
@@ -500,12 +524,17 @@ function renderWeekSchedule() {
   const range = document.getElementById("weekRange");
   const count = document.getElementById("weekCount");
   const start = startOfCurrentWeek();
-  const days = Array.from({ length: 28 }, (_, index) => addDays(start, index));
-  const end = days[27];
+  const days = Array.from({ length: 7 }, (_, index) => addDays(start, index));
+  const end = days[6];
   const todayIso = isoDate(new Date());
-  const weekDeliveries = deliveries.filter((delivery) =>
-    isScheduledDelivery(delivery) && days.some((day) => delivery.delivery_date === isoDate(day))
-  );
+  const dayDeliveriesByDate = days.reduce((grouped, day) => {
+    const dayIso = isoDate(day);
+    grouped[dayIso] = deliveries
+      .filter((delivery) => isScheduledDelivery(delivery) && delivery.delivery_date === dayIso)
+      .sort(compareWeekDeliveries);
+    return grouped;
+  }, {});
+  const weekDeliveries = Object.values(dayDeliveriesByDate).flat();
 
   range.textContent = `${formatWeekDate(start, {
     month: "short",
@@ -514,16 +543,29 @@ function renderWeekSchedule() {
   count.textContent = `${weekDeliveries.length} ${
     weekDeliveries.length === 1 ? "delivery" : "deliveries"
   }`;
+  schedule.style.gridTemplateColumns = days
+    .map((day) => {
+      const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+      const hasDeliveries = dayDeliveriesByDate[isoDate(day)].length > 0;
+      return isWeekend && !hasDeliveries ? "minmax(44px, 64px)" : "minmax(0, 1fr)";
+    })
+    .join(" ");
 
   schedule.innerHTML = days
     .map((day) => {
       const dayIso = isoDate(day);
-      const dayDeliveries = deliveries
-        .filter((delivery) => isScheduledDelivery(delivery) && delivery.delivery_date === dayIso)
-        .sort(compareWeekDeliveries);
+      const dayDeliveries = dayDeliveriesByDate[dayIso];
+      const dayClasses = [
+        "week-day",
+        dayIso === todayIso ? "today" : "",
+        day.getDay() === 0 || day.getDay() === 6 ? "weekend" : "",
+        dayDeliveries.length ? "has-deliveries" : ""
+      ]
+        .filter(Boolean)
+        .join(" ");
 
       return `
-        <section class="week-day ${dayIso === todayIso ? "today" : ""}">
+        <section class="${dayClasses}">
           <div class="week-day-header">
             <strong>${formatWeekDate(day, { weekday: "short" })}</strong>
             <span>${formatWeekDate(day, { month: "numeric", day: "numeric" })}</span>
@@ -541,6 +583,24 @@ function renderWeekSchedule() {
       `;
     })
     .join("");
+}
+
+function updateCalendarWeekendColumns() {
+  if (!calendar) return;
+
+  const visibleEvents = calendar.getEvents().filter((event) => {
+    if (!event.start) return false;
+    return event.start >= calendar.view.activeStart && event.start < calendar.view.activeEnd;
+  });
+  const scheduledWeekendDays = new Set(
+    visibleEvents
+      .filter((event) => event.start.getDay() === 0 || event.start.getDay() === 6)
+      .map((event) => event.start.getDay())
+  );
+  const calendarEl = document.getElementById("calendar");
+
+  calendarEl.classList.toggle("has-sunday-deliveries", scheduledWeekendDays.has(0));
+  calendarEl.classList.toggle("has-saturday-deliveries", scheduledWeekendDays.has(6));
 }
 
 function renderWeekDelivery(delivery) {
@@ -632,10 +692,6 @@ function renderDeliveryList() {
           : delivery.status === "In Progress"
             ? "in-progress"
           : "";
-      const checklist = renderChecklistPreview(
-        delivery.checklist || [],
-        delivery.companies_delivering
-      );
 
       return `
         <div class="delivery-row ${driverColorClass(delivery.drivers)}" onclick="openDelivery(${delivery.id})">
@@ -646,37 +702,10 @@ function renderDeliveryList() {
             <div>${escapeHtml([delivery.delivery_company, delivery.drivers ? `Driver: ${delivery.drivers}` : "", delivery.van ? `Van: ${delivery.van}` : ""].filter(Boolean).join(" / "))}</div>
             <div><span class="badge ${badgeClass}">${escapeHtml(delivery.status || "Not Started")}</span></div>
           </div>
-          ${checklist}
         </div>
       `;
     })
     .join("");
-}
-
-function renderChecklistPreview(items, companiesDelivering) {
-  if (!items.length) {
-    return '<div class="checklist-preview"><span class="task-pill task-not-done">Checklist not started</span></div>';
-  }
-
-  return `
-    <div class="checklist-preview" aria-label="Checklist status">
-      ${items
-        .map((item) => {
-          const active = isChecklistItemActive(item, companiesDelivering);
-          const done = Boolean(item.completed);
-          const statusText = active ? (done ? "Done" : "Not done") : "Inactive";
-          const statusClass = active ? (done ? "task-done" : "task-not-done") : "task-inactive";
-
-          return `
-            <span class="task-pill ${statusClass}" title="${escapeHtml(item.label)}: ${statusText}">
-              <span class="task-label">${escapeHtml(item.label)}</span>
-              <span class="task-state">${statusText}</span>
-            </span>
-          `;
-        })
-        .join("")}
-    </div>
-  `;
 }
 
 async function openDelivery(id) {
@@ -705,7 +734,6 @@ async function openDelivery(id) {
   document.getElementById("status").value = d.status || "Not Started";
   document.getElementById("notes").value = d.notes || "";
 
-  renderChecklist(data.checklist || [], d.companies_delivering);
   document.getElementById("drawer").classList.add("open");
   document.getElementById("drawer").setAttribute("aria-hidden", "false");
 }
@@ -713,69 +741,6 @@ async function openDelivery(id) {
 function closeDrawer() {
   document.getElementById("drawer").classList.remove("open");
   document.getElementById("drawer").setAttribute("aria-hidden", "true");
-}
-
-function renderChecklist(items, companiesDelivering) {
-  const checklist = document.getElementById("checklist");
-
-  checklist.innerHTML = items
-    .map((item) => {
-      const active = isChecklistItemActive(item, companiesDelivering);
-      const inactiveText = active ? "" : '<span class="inactive-note">Inactive unless SB delivers</span>';
-
-      return `
-        <label class="check-item ${active ? "" : "inactive"}">
-          <input
-            type="checkbox"
-            ${item.completed ? "checked" : ""}
-            ${active ? "" : "disabled"}
-            onchange="saveChecklistItem(${item.id}, this.checked)"
-          />
-          <span>${escapeHtml(item.label)}</span>
-          ${inactiveText}
-        </label>
-      `;
-    })
-    .join("");
-}
-
-async function saveChecklistItem(id, completed) {
-  const response = await fetch(`/api/checklist/${id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ completed })
-  });
-
-  if (!response.ok) {
-    alert("Checklist item did not save.");
-    return;
-  }
-
-  const data = await response.json();
-  document.getElementById("status").value = data.status || "Not Started";
-  await loadDeliveries();
-  calendar.refetchEvents();
-}
-
-async function checkAllChecklistItems() {
-  const id = document.getElementById("deliveryId").value;
-
-  if (!id) return;
-
-  const response = await fetch(`/api/deliveries/${id}/checklist/check-all`, {
-    method: "PATCH"
-  });
-
-  if (!response.ok) {
-    alert("Checklist items did not save.");
-    return;
-  }
-
-  const data = await response.json();
-  document.getElementById("status").value = data.status || "Not Started";
-  await openDelivery(id);
-  await loadDeliveries();
-  calendar.refetchEvents();
 }
 
 async function saveDelivery(event) {

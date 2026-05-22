@@ -213,25 +213,47 @@ async function updateDeliveryStatusFromChecklist(deliveryId) {
   };
 }
 
-async function insertOrUpdateDelivery(delivery, checklistItems) {
-  const existing = await get(
+async function ensureChecklistRows(deliveryId) {
+  for (const item of CHECKLIST_COLUMNS) {
+    await run(
+      `
+        INSERT INTO delivery_checklist (delivery_id, item_key, label, completed, raw_value)
+        VALUES (?, ?, ?, 0, '')
+        ON CONFLICT(delivery_id, item_key) DO NOTHING
+      `,
+      [deliveryId, item.key, item.label]
+    );
+  }
+}
+
+async function insertOrUpdateDelivery(delivery, checklistItems = []) {
+  const existingDeliveries = await all(
     `
       SELECT id FROM deliveries
-      WHERE store = ? AND delivery_date = ? AND delivery_time = ? AND drivers = ?
+      WHERE store = ? AND delivery_date = ? AND delivery_time = ?
+      ORDER BY id
     `,
-    [delivery.store, delivery.delivery_date, delivery.delivery_time, delivery.drivers]
+    [delivery.store, delivery.delivery_date, delivery.delivery_time]
   );
 
   let deliveryId;
 
-  if (existing) {
-    deliveryId = existing.id;
+  if (existingDeliveries.length) {
+    deliveryId = existingDeliveries[0].id;
+    const duplicateIds = existingDeliveries.slice(1).map((row) => row.id);
+
+    if (duplicateIds.length) {
+      const placeholders = duplicateIds.map(() => "?").join(",");
+      await run(`DELETE FROM delivery_checklist WHERE delivery_id IN (${placeholders})`, duplicateIds);
+      await run(`DELETE FROM deliveries WHERE id IN (${placeholders})`, duplicateIds);
+    }
+
     await run(
       `
         UPDATE deliveries
         SET dispensary_location = ?, dispensary_address = ?, companies_delivering = ?,
             delivery_company = ?, border_store = ?, needs_display = ?, date_order_received = ?,
-            product_type = ?, delivery_type = ?, pickup_time = ?, van = ?,
+            product_type = ?, delivery_type = ?, pickup_time = ?, drivers = ?, van = ?,
             source_sheet = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `,
@@ -246,6 +268,7 @@ async function insertOrUpdateDelivery(delivery, checklistItems) {
         delivery.product_type,
         delivery.delivery_type,
         delivery.pickup_time,
+        delivery.drivers,
         delivery.van,
         delivery.source_sheet,
         deliveryId
@@ -284,6 +307,8 @@ async function insertOrUpdateDelivery(delivery, checklistItems) {
     );
     deliveryId = result.lastID;
   }
+
+  await ensureChecklistRows(deliveryId);
 
   for (const item of checklistItems) {
     await run(
@@ -647,8 +672,6 @@ app.patch("/api/deliveries/:id", async (req, res) => {
       ]
     );
 
-    await updateDeliveryStatusFromChecklist(req.params.id);
-
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
@@ -829,17 +852,7 @@ app.post("/api/import", upload.single("schedule"), async (req, res) => {
         source_sheet: sheetName
       };
 
-      const checklistItems = CHECKLIST_COLUMNS.map((item) => {
-        const rawValue = normalizeCell(getValue(row, headerMap, item.spreadsheetHeader));
-        return {
-          key: item.key,
-          label: item.label,
-          completed: isCompletedChecklistValue(rawValue),
-          raw_value: rawValue
-        };
-      });
-
-      await insertOrUpdateDelivery(delivery, checklistItems);
+      await insertOrUpdateDelivery(delivery);
       imported += 1;
     }
 

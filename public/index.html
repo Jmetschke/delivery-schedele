@@ -230,7 +230,7 @@
     <section class="week-card mobile-view-section" data-mobile-section="calendar">
       <div class="week-header">
         <div>
-          <h2>Next 4 Weeks</h2>
+          <h2>Current Week</h2>
           <p id="weekRange"></p>
         </div>
         <strong id="weekCount">0 deliveries</strong>
@@ -315,6 +315,14 @@
         <button class="wide-field" type="submit">Add Delivery</button>
       </form>
       <p id="newDeliveryResult" class="message"></p>
+
+      <form id="spreadsheetImportForm" class="spreadsheet-import-form">
+        <label>Upload Spreadsheet
+          <input id="spreadsheetImportFile" type="file" name="schedule" accept=".xlsx,.xls,.csv" required />
+        </label>
+        <button type="submit">Upload</button>
+      </form>
+      <p id="spreadsheetImportResult" class="message"></p>
 
       <div class="summary">
         <div>
@@ -451,12 +459,6 @@
           <button id="deleteDelivery" class="danger-btn" type="button">Delete Delivery</button>
         </div>
       </form>
-
-      <div class="checklist-header">
-        <h3>Checklist</h3>
-        <button id="checkAllChecklist" class="secondary-btn" type="button">Check All</button>
-      </div>
-      <div id="checklist" class="checklist"></div>
     </div>
   </aside>
 
