@@ -208,6 +208,37 @@ function spreadsheetDeliveryKey(delivery) {
   ].join("|");
 }
 
+function deliveryDuplicateKey(delivery) {
+  const store = normalizeCell(delivery.store).replace(/\s+/g, " ").toUpperCase();
+  const deliveryDate = normalizeCell(delivery.delivery_date);
+
+  if (deliveryDate) return `${store}|${deliveryDate}`;
+
+  return [store, deliveryDate, normalizeCell(delivery.delivery_time)].join("|");
+}
+
+function dedupeDeliveryRows(rows) {
+  const deduped = new Map();
+
+  for (const row of rows) {
+    const key = deliveryDuplicateKey(row);
+    const existing = deduped.get(key);
+
+    if (!existing) {
+      deduped.set(key, row);
+      continue;
+    }
+
+    const existingUpdated = new Date(existing.updated_at || existing.created_at || 0).getTime();
+    const rowUpdated = new Date(row.updated_at || row.created_at || 0).getTime();
+    if (rowUpdated >= existingUpdated) {
+      deduped.set(key, row);
+    }
+  }
+
+  return Array.from(deduped.values());
+}
+
 function run(sql, params = []) {
   return new Promise((resolve, reject) => {
     db.run(sql, params, function callback(err) {
@@ -316,23 +347,27 @@ async function ensureChecklistRows(deliveryId) {
 
 async function insertOrUpdateDelivery(delivery, checklistItems = []) {
   const hasDeliveryDate = hasValue(delivery.delivery_date);
-  const existingDeliveries = hasDeliveryDate
+  const candidateDeliveries = hasDeliveryDate
     ? await all(
         `
-          SELECT id FROM deliveries
-          WHERE store = ? AND delivery_date = ?
+          SELECT id, store, delivery_date, delivery_time FROM deliveries
+          WHERE delivery_date = ?
           ORDER BY id
         `,
-        [delivery.store, delivery.delivery_date]
+        [delivery.delivery_date]
       )
     : await all(
         `
-          SELECT id FROM deliveries
+          SELECT id, store, delivery_date, delivery_time FROM deliveries
           WHERE store = ? AND delivery_date = ? AND delivery_time = ?
           ORDER BY id
         `,
         [delivery.store, delivery.delivery_date, delivery.delivery_time]
       );
+  const deliveryKey = deliveryDuplicateKey(delivery);
+  const existingDeliveries = candidateDeliveries.filter(
+    (candidate) => deliveryDuplicateKey(candidate) === deliveryKey
+  );
 
   let deliveryId;
 
@@ -349,8 +384,9 @@ async function insertOrUpdateDelivery(delivery, checklistItems = []) {
     await run(
       `
         UPDATE deliveries
-        SET dispensary_location = ?, dispensary_address = ?, companies_delivering = ?,
-            delivery_company = ?, border_store = ?, needs_display = ?, date_order_received = ?,
+        SET store = ?, dispensary_location = ?, dispensary_address = ?,
+            companies_delivering = ?, delivery_company = ?, border_store = ?,
+            needs_display = ?, date_order_received = ?,
             product_type = ?, delivery_type = ?, delivery_date = ?, delivery_time = ?,
             pickup_time = ?, drivers = ?,
             driver_id_number = ?, van = ?, license_plate = ?, status = ?,
@@ -358,6 +394,7 @@ async function insertOrUpdateDelivery(delivery, checklistItems = []) {
         WHERE id = ?
       `,
       [
+        delivery.store,
         delivery.dispensary_location,
         delivery.dispensary_address,
         delivery.companies_delivering,
@@ -535,7 +572,7 @@ app.get("/api/deliveries", async (req, res) => {
 
     const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
-    const rows = await all(
+    const rows = dedupeDeliveryRows(await all(
       `
         SELECT * FROM deliveries
         ${where}
@@ -546,7 +583,7 @@ app.get("/api/deliveries", async (req, res) => {
           store
       `,
       params
-    );
+    ));
 
     if (!rows.length) {
       return res.json([]);
