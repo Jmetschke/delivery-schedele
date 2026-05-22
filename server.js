@@ -503,6 +503,8 @@ app.get("/api/deliveries", async (req, res) => {
     if (delivered !== undefined) {
       filters.push("COALESCE(delivered, 0) = ?");
       params.push(delivered === "1" || delivered === "true" ? 1 : 0);
+    } else {
+      filters.push("COALESCE(delivered, 0) = 0");
     }
 
     const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
