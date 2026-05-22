@@ -195,6 +195,19 @@ function shouldSkipSpreadsheetStore(store) {
   return !normalized || normalized.startsWith("PAGE") || normalized === "PROCESSING PHASE 1" || normalized === "DELIVERY DATE";
 }
 
+function spreadsheetDeliveryKey(delivery) {
+  const store = normalizeCell(delivery.store).toUpperCase();
+  const deliveryDate = normalizeCell(delivery.delivery_date);
+
+  if (deliveryDate) return `${store}|${deliveryDate}`;
+
+  return [
+    store,
+    deliveryDate,
+    normalizeCell(delivery.delivery_time)
+  ].join("|");
+}
+
 function run(sql, params = []) {
   return new Promise((resolve, reject) => {
     db.run(sql, params, function callback(err) {
@@ -302,14 +315,24 @@ async function ensureChecklistRows(deliveryId) {
 }
 
 async function insertOrUpdateDelivery(delivery, checklistItems = []) {
-  const existingDeliveries = await all(
-    `
-      SELECT id FROM deliveries
-      WHERE store = ? AND delivery_date = ? AND delivery_time = ?
-      ORDER BY id
-    `,
-    [delivery.store, delivery.delivery_date, delivery.delivery_time]
-  );
+  const hasDeliveryDate = hasValue(delivery.delivery_date);
+  const existingDeliveries = hasDeliveryDate
+    ? await all(
+        `
+          SELECT id FROM deliveries
+          WHERE store = ? AND delivery_date = ?
+          ORDER BY id
+        `,
+        [delivery.store, delivery.delivery_date]
+      )
+    : await all(
+        `
+          SELECT id FROM deliveries
+          WHERE store = ? AND delivery_date = ? AND delivery_time = ?
+          ORDER BY id
+        `,
+        [delivery.store, delivery.delivery_date, delivery.delivery_time]
+      );
 
   let deliveryId;
 
@@ -328,7 +351,8 @@ async function insertOrUpdateDelivery(delivery, checklistItems = []) {
         UPDATE deliveries
         SET dispensary_location = ?, dispensary_address = ?, companies_delivering = ?,
             delivery_company = ?, border_store = ?, needs_display = ?, date_order_received = ?,
-            product_type = ?, delivery_type = ?, pickup_time = ?, drivers = ?,
+            product_type = ?, delivery_type = ?, delivery_date = ?, delivery_time = ?,
+            pickup_time = ?, drivers = ?,
             driver_id_number = ?, van = ?, license_plate = ?, status = ?,
             source_sheet = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
@@ -343,6 +367,8 @@ async function insertOrUpdateDelivery(delivery, checklistItems = []) {
         delivery.date_order_received,
         delivery.product_type,
         delivery.delivery_type,
+        delivery.delivery_date,
+        delivery.delivery_time,
         delivery.pickup_time,
         delivery.drivers,
         delivery.driver_id_number,
@@ -954,6 +980,8 @@ app.post("/api/import", upload.single("schedule"), async (req, res) => {
     let imported = 0;
     let skipped = 0;
 
+    const spreadsheetDeliveries = new Map();
+
     for (const row of rows.slice(headerRowIndex + 1)) {
       const store = normalizeCell(getValue(row, headerMap, "STORE"));
 
@@ -997,6 +1025,12 @@ app.post("/api/import", upload.single("schedule"), async (req, res) => {
         source_sheet: sheetName
       };
 
+      const key = spreadsheetDeliveryKey(delivery);
+      if (spreadsheetDeliveries.has(key)) skipped += 1;
+      spreadsheetDeliveries.set(key, delivery);
+    }
+
+    for (const delivery of spreadsheetDeliveries.values()) {
       await insertOrUpdateDelivery(delivery);
       imported += 1;
     }
