@@ -11,8 +11,14 @@ function escapeHtml(value) {
 
 function formatDeliveredDate(value) {
   if (!value) return "";
+  const isoDateMatch = String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (isoDateMatch) {
+    return `${Number(isoDateMatch[2])}/${Number(isoDateMatch[3])}/${isoDateMatch[1]}`;
+  }
+
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
 }
 
 async function loadDeliveredOrders() {
@@ -29,7 +35,7 @@ async function loadDeliveredOrders() {
   }
 
   list.innerHTML = deliveries
-    .sort((a, b) => String(b.delivered_at || "").localeCompare(String(a.delivered_at || "")))
+    .sort((a, b) => String(b.delivery_date || "").localeCompare(String(a.delivery_date || "")))
     .map((delivery) => {
       const schedule = [
         delivery.delivery_date,
@@ -56,7 +62,7 @@ async function loadDeliveredOrders() {
             <div>${escapeHtml(delivery.companies_delivering || "")}</div>
             <div><span class="badge completed">Delivered</span></div>
           </div>
-          <div class="delivered-meta">Delivered ${escapeHtml(formatDeliveredDate(delivery.delivered_at))}</div>
+          <div class="delivered-meta">Delivered ${escapeHtml(formatDeliveredDate(delivery.delivery_date))}</div>
         </article>
       `;
     })

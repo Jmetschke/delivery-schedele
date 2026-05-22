@@ -42,12 +42,27 @@ function setupCalendar() {
   const phoneView = window.matchMedia("(max-width: 640px)");
 
   calendar = new FullCalendar.Calendar(calendarEl, {
-    initialView: phoneView.matches ? "listWeek" : "dayGridMonth",
+    initialView: phoneView.matches ? "listFourWeeks" : "rollingFourWeeks",
+    initialDate: startOfCurrentWeek(),
     height: "auto",
     headerToolbar: {
       left: "prev,next today",
       center: "title",
-      right: phoneView.matches ? "" : "dayGridMonth,dayGridWeek"
+      right: phoneView.matches ? "" : "rollingFourWeeks,dayGridWeek"
+    },
+    views: {
+      rollingFourWeeks: {
+        type: "dayGrid",
+        duration: { weeks: 4 },
+        dateAlignment: "week",
+        buttonText: "4 weeks"
+      },
+      listFourWeeks: {
+        type: "list",
+        duration: { weeks: 4 },
+        dateAlignment: "week",
+        buttonText: "4 weeks"
+      }
     },
     eventSources: ["/api/calendar-events"],
     eventClassNames(info) {
@@ -70,13 +85,13 @@ function setupCalendar() {
       calendar.setOption("headerToolbar", {
         left: "prev,next today",
         center: "title",
-        right: isPhone ? "" : "dayGridMonth,dayGridWeek"
+        right: isPhone ? "" : "rollingFourWeeks,dayGridWeek"
       });
 
-      if (isPhone && calendar.view.type !== "listWeek") {
-        calendar.changeView("listWeek");
-      } else if (!isPhone && calendar.view.type === "listWeek") {
-        calendar.changeView("dayGridMonth");
+      if (isPhone && calendar.view.type !== "listFourWeeks") {
+        calendar.changeView("listFourWeeks", startOfCurrentWeek());
+      } else if (!isPhone && calendar.view.type === "listFourWeeks") {
+        calendar.changeView("rollingFourWeeks", startOfCurrentWeek());
       }
     }
   });
@@ -485,8 +500,8 @@ function renderWeekSchedule() {
   const range = document.getElementById("weekRange");
   const count = document.getElementById("weekCount");
   const start = startOfCurrentWeek();
-  const days = Array.from({ length: 7 }, (_, index) => addDays(start, index));
-  const end = days[6];
+  const days = Array.from({ length: 28 }, (_, index) => addDays(start, index));
+  const end = days[27];
   const todayIso = isoDate(new Date());
   const weekDeliveries = deliveries.filter((delivery) =>
     isScheduledDelivery(delivery) && days.some((day) => delivery.delivery_date === isoDate(day))

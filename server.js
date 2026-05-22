@@ -195,11 +195,15 @@ async function updateDeliveryStatusFromChecklist(deliveryId) {
       : completedCount > 0 || checklistComplete
         ? "In Progress"
         : "Not Started";
+  const deliveredClause =
+    status === "Completed"
+      ? ", delivered = 1, delivered_at = COALESCE(delivered_at, CURRENT_TIMESTAMP)"
+      : "";
 
-  await run("UPDATE deliveries SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [
-    status,
-    deliveryId
-  ]);
+  await run(
+    `UPDATE deliveries SET status = ?${deliveredClause}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    [status, deliveryId]
+  );
 
   return {
     status,
@@ -395,6 +399,8 @@ app.get("/api/deliveries", async (req, res) => {
     if (delivered !== undefined) {
       filters.push("COALESCE(delivered, 0) = ?");
       params.push(delivered === "1" || delivered === "true" ? 1 : 0);
+    } else {
+      filters.push("COALESCE(delivered, 0) = 0");
     }
 
     const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
@@ -450,6 +456,7 @@ app.get("/api/calendar-events", async (req, res) => {
         FROM deliveries
         WHERE delivery_date IS NOT NULL AND delivery_date != ''
           AND delivery_time IS NOT NULL AND delivery_time != ''
+          AND COALESCE(delivered, 0) = 0
         ORDER BY delivery_date, delivery_time
       `
     );
