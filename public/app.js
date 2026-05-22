@@ -72,6 +72,10 @@ function setupCalendar() {
         classes.push("delivered-calendar-event");
       }
 
+      if (Number(info.event.extendedProps.order_ready_to_ship)) {
+        classes.push("order-ready-calendar-event");
+      }
+
       return classes;
     },
     eventContent(info) {
@@ -136,6 +140,13 @@ function renderCalendarEvent(event) {
     wrapper.appendChild(detail);
   }
 
+  if (Number(props.order_ready_to_ship)) {
+    const ready = document.createElement("span");
+    ready.className = "calendar-ready-status";
+    ready.textContent = "Ready to ship";
+    wrapper.appendChild(ready);
+  }
+
   if (isDueDeliveryDate(event.startStr)) {
     const label = document.createElement("label");
     label.className = "calendar-delivered-check";
@@ -175,6 +186,24 @@ async function setDeliveredStatus(id, delivered) {
 
   if (!response.ok) {
     alert("Delivered status did not save.");
+    calendar.refetchEvents();
+    return;
+  }
+
+  await loadDeliveries();
+  calendar.refetchEvents();
+}
+
+async function setOrderReadyStatus(id, orderReady) {
+  const response = await fetch(`/api/deliveries/${id}/order-ready`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ order_ready_to_ship: orderReady })
+  });
+
+  if (!response.ok) {
+    alert("Order ready status did not save.");
+    await loadDeliveries();
     calendar.refetchEvents();
     return;
   }
@@ -618,12 +647,21 @@ function renderWeekDelivery(delivery) {
     delivery.drivers ? `Driver: ${delivery.drivers}` : "",
     delivery.van ? `Van: ${delivery.van}` : ""
   ].filter(Boolean);
+  const classes = [
+    "week-delivery",
+    driverColorClass(delivery.drivers),
+    Number(delivery.delivered) ? "delivered-week-delivery" : "",
+    Number(delivery.order_ready_to_ship) ? "order-ready-week-delivery" : ""
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return `
-    <button class="week-delivery ${driverColorClass(delivery.drivers)}" type="button" onclick="openDelivery(${delivery.id})">
+    <button class="${classes}" type="button" onclick="openDelivery(${delivery.id})">
       <span class="week-delivery-time">${escapeHtml(logistics.join(" | ") || "Time TBD")}</span>
       <strong>${escapeHtml(delivery.store)}</strong>
       <span>${escapeHtml(delivery.dispensary_location || delivery.companies_delivering || "")}</span>
+      ${Number(delivery.order_ready_to_ship) ? '<span class="ready-label">Ready to ship</span>' : ""}
       <span class="badge ${badgeClass}">${escapeHtml(delivery.status || "Not Started")}</span>
     </button>
   `;
@@ -675,9 +713,10 @@ function renderDeliveryList() {
   const statusFilter = document.getElementById("statusFilter").value;
   const list = document.getElementById("deliveryList");
 
-  const visible = statusFilter
+  const visible = (statusFilter
     ? deliveries.filter((delivery) => delivery.status === statusFilter)
-    : deliveries;
+    : deliveries
+  ).slice().sort(compareDeliveryListRows);
 
   if (!visible.length) {
     list.innerHTML = "<p>No deliveries found.</p>";
@@ -694,18 +733,39 @@ function renderDeliveryList() {
           : "";
 
       return `
-        <div class="delivery-row ${driverColorClass(delivery.drivers)}" onclick="openDelivery(${delivery.id})">
+        <div class="delivery-row ${driverColorClass(delivery.drivers)} ${Number(delivery.delivered) ? "delivered-delivery-row" : ""}" onclick="openDelivery(${delivery.id})">
           <div class="delivery-row-main">
             <div>${delivery.delivery_date || ""}</div>
             <div><strong>${escapeHtml(delivery.store)}</strong><br>${escapeHtml(delivery.dispensary_location || delivery.dispensary_address || "")}</div>
             <div>${escapeHtml([delivery.pickup_time ? `PU ${delivery.pickup_time}` : "", delivery.delivery_time ? `DEL ${delivery.delivery_time}` : ""].filter(Boolean).join(" / "))}</div>
             <div>${escapeHtml([delivery.delivery_company, delivery.drivers ? `Driver: ${delivery.drivers}` : "", delivery.van ? `Van: ${delivery.van}` : ""].filter(Boolean).join(" / "))}</div>
             <div><span class="badge ${badgeClass}">${escapeHtml(delivery.status || "Not Started")}</span></div>
+            <label class="ready-toggle" onclick="event.stopPropagation()">
+              <input
+                type="checkbox"
+                ${Number(delivery.order_ready_to_ship) ? "checked" : ""}
+                onchange="setOrderReadyStatus(${delivery.id}, this.checked)"
+              />
+              <span>Order ready to ship</span>
+            </label>
           </div>
         </div>
       `;
     })
     .join("");
+}
+
+function compareDeliveryListRows(a, b) {
+  const aHasDate = Boolean(String(a.delivery_date || "").trim());
+  const bHasDate = Boolean(String(b.delivery_date || "").trim());
+
+  if (aHasDate !== bHasDate) return aHasDate ? -1 : 1;
+
+  return (
+    String(a.delivery_date || "").localeCompare(String(b.delivery_date || "")) ||
+    timeSortValue(a.delivery_time) - timeSortValue(b.delivery_time) ||
+    String(a.store || "").localeCompare(String(b.store || ""), undefined, { sensitivity: "base" })
+  );
 }
 
 async function openDelivery(id) {

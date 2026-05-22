@@ -12,6 +12,36 @@ const upload = multer({ dest: path.join(__dirname, "uploads") });
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
+const DRIVER_ID_BY_NAME = {
+  "Adriana Santacruz": "trag10001537",
+  "Chloe Stockholm": "Stockholm0056",
+  "Eduardo Ibarra": "TRAG10000874",
+  "Hector Ochoa": "TRAG10001408",
+  "Jason Litwin": "TRAG10001271",
+  "John Tinsley": "001",
+  "Jorge Galvez": "TRAG100010091",
+  "Joselyn Cervantes": "TRAG10001437",
+  "Julia Johnson": "002",
+  "Karina Cervantez": "TRAG10001042",
+  "Lamarr Collins": "TRAG10000914",
+  "Lily Knightly": "008",
+  "Magdalena Rodriguez": "TRAG10001486",
+  "Paul Johnson": "009",
+  "Richard Paull": "TRAG10001512",
+  "STEVE GARZA": "TRAC10000166",
+  "TED STEINBRECHER": "TRAG10001542"
+};
+
+const LICENSE_PLATE_BY_VAN = {
+  "Audi SQ5": "EB63835",
+  "Dodge Ram Promaster 3500": "197 361C",
+  "Ford Escape": "EZ65313",
+  "Ford Transit Connect": "2992940B",
+  "GMC Savanah": "3703270",
+  "Hyundai Santa Fe": "DB53579",
+  "Toyota Corolla": "EL90538"
+};
+
 const CHECKLIST_COLUMNS = [
   {
     key: "order_folder_dropbox",
@@ -123,6 +153,48 @@ function getValue(row, headerMap, headerName) {
   return index === undefined ? "" : row[index];
 }
 
+function getFirstValue(row, headerMap, headerNames) {
+  for (const headerName of headerNames) {
+    const value = getValue(row, headerMap, headerName);
+    if (normalizeCell(value)) return value;
+  }
+
+  return "";
+}
+
+function findMappedValue(value, mapping) {
+  const text = normalizeCell(value);
+  if (!text) return "";
+
+  const normalized = text.toUpperCase();
+  const key = Object.keys(mapping).find((name) => name.toUpperCase() === normalized);
+  return key ? mapping[key] : "";
+}
+
+function normalizeMappedName(value, mapping) {
+  const text = normalizeCell(value);
+  if (!text) return "";
+
+  const normalized = text.toUpperCase();
+  return Object.keys(mapping).find((name) => name.toUpperCase() === normalized) || text;
+}
+
+function companiesFromSpreadsheet(value) {
+  const text = normalizeCell(value).toUpperCase();
+  const companies = [];
+
+  if (text.includes("H")) companies.push("Hijnx");
+  if (text.includes("S")) companies.push("SB");
+  if (text.includes("P")) companies.push("PG");
+
+  return companies.join(", ");
+}
+
+function shouldSkipSpreadsheetStore(store) {
+  const normalized = normalizeCell(store).toUpperCase();
+  return !normalized || normalized.startsWith("PAGE") || normalized === "PROCESSING PHASE 1" || normalized === "DELIVERY DATE";
+}
+
 function run(sql, params = []) {
   return new Promise((resolve, reject) => {
     db.run(sql, params, function callback(err) {
@@ -165,12 +237,15 @@ function hasValue(value) {
 function hasRequiredDeliveryFields(delivery) {
   return [
     delivery.store,
-    delivery.dispensary_location,
     delivery.companies_delivering,
     delivery.delivery_company,
     delivery.drivers,
     delivery.van
   ].every(hasValue);
+}
+
+function statusForRequiredFields(delivery) {
+  return hasRequiredDeliveryFields(delivery) ? "Completed" : "Not Started";
 }
 
 async function updateDeliveryStatusFromChecklist(deliveryId) {
@@ -253,7 +328,8 @@ async function insertOrUpdateDelivery(delivery, checklistItems = []) {
         UPDATE deliveries
         SET dispensary_location = ?, dispensary_address = ?, companies_delivering = ?,
             delivery_company = ?, border_store = ?, needs_display = ?, date_order_received = ?,
-            product_type = ?, delivery_type = ?, pickup_time = ?, drivers = ?, van = ?,
+            product_type = ?, delivery_type = ?, pickup_time = ?, drivers = ?,
+            driver_id_number = ?, van = ?, license_plate = ?, status = ?,
             source_sheet = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `,
@@ -269,7 +345,10 @@ async function insertOrUpdateDelivery(delivery, checklistItems = []) {
         delivery.delivery_type,
         delivery.pickup_time,
         delivery.drivers,
+        delivery.driver_id_number,
         delivery.van,
+        delivery.license_plate,
+        statusForRequiredFields(delivery),
         delivery.source_sheet,
         deliveryId
       ]
@@ -282,9 +361,9 @@ async function insertOrUpdateDelivery(delivery, checklistItems = []) {
           store, dispensary_location, dispensary_address, companies_delivering,
           delivery_company, border_store, needs_display, date_order_received,
           product_type, delivery_type, delivery_date, pickup_time,
-          delivery_time, drivers, van, source_sheet
+          delivery_time, drivers, driver_id_number, van, license_plate, status, source_sheet
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         delivery.store,
@@ -301,7 +380,10 @@ async function insertOrUpdateDelivery(delivery, checklistItems = []) {
         delivery.pickup_time,
         delivery.delivery_time,
         delivery.drivers,
+        delivery.driver_id_number,
         delivery.van,
+        delivery.license_plate,
+        statusForRequiredFields(delivery),
         delivery.source_sheet
       ]
     );
@@ -321,8 +403,6 @@ async function insertOrUpdateDelivery(delivery, checklistItems = []) {
       [deliveryId, item.key, item.label, item.completed, item.raw_value]
     );
   }
-
-  await updateDeliveryStatusFromChecklist(deliveryId);
 
   return deliveryId;
 }
@@ -395,7 +475,6 @@ async function syncChecklistDefinitions() {
       "DELETE FROM delivery_checklist WHERE delivery_id = ? AND item_key = 'folder_manifest_invoice'",
       [delivery.id]
     );
-    await updateDeliveryStatusFromChecklist(delivery.id);
   }
 }
 
@@ -424,8 +503,6 @@ app.get("/api/deliveries", async (req, res) => {
     if (delivered !== undefined) {
       filters.push("COALESCE(delivered, 0) = ?");
       params.push(delivered === "1" || delivered === "true" ? 1 : 0);
-    } else {
-      filters.push("COALESCE(delivered, 0) = 0");
     }
 
     const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
@@ -434,7 +511,11 @@ app.get("/api/deliveries", async (req, res) => {
       `
         SELECT * FROM deliveries
         ${where}
-        ORDER BY delivery_date, delivery_time, store
+        ORDER BY
+          CASE WHEN delivery_date IS NULL OR delivery_date = '' THEN 1 ELSE 0 END,
+          delivery_date,
+          delivery_time,
+          store
       `,
       params
     );
@@ -477,11 +558,11 @@ app.get("/api/calendar-events", async (req, res) => {
     const rows = await all(
       `
         SELECT id, store, delivery_date, pickup_time, delivery_time,
-               delivery_company, drivers, van, companies_delivering, status, delivered
+               delivery_company, drivers, van, companies_delivering, status,
+               delivered, order_ready_to_ship
         FROM deliveries
         WHERE delivery_date IS NOT NULL AND delivery_date != ''
           AND delivery_time IS NOT NULL AND delivery_time != ''
-          AND COALESCE(delivered, 0) = 0
         ORDER BY delivery_date, delivery_time
       `
     );
@@ -512,7 +593,8 @@ app.get("/api/calendar-events", async (req, res) => {
         van: row.van,
         companies_delivering: row.companies_delivering,
         status: row.status,
-        delivered: row.delivered
+        delivered: row.delivered,
+        order_ready_to_ship: row.order_ready_to_ship
       }
     }));
 
@@ -567,6 +649,17 @@ app.post("/api/deliveries", async (req, res) => {
       return res.status(400).json({ error: "Dispensary name is required" });
     }
 
+    const delivery = {
+      store,
+      dispensary_location,
+      dispensary_address,
+      companies_delivering,
+      delivery_company,
+      drivers,
+      van
+    };
+    const status = statusForRequiredFields(delivery);
+
     const result = await run(
       `
         INSERT INTO deliveries (
@@ -574,7 +667,7 @@ app.post("/api/deliveries", async (req, res) => {
           delivery_company, drivers, driver_id_number, van, license_plate, border_store, needs_display,
           date_order_received, delivery_date, delivery_time, pickup_time, status
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Not Started')
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         store,
@@ -591,7 +684,8 @@ app.post("/api/deliveries", async (req, res) => {
         date_order_received,
         delivery_date,
         delivery_time,
-        pickup_time
+        pickup_time,
+        status
       ]
     );
 
@@ -632,9 +726,16 @@ app.patch("/api/deliveries/:id", async (req, res) => {
       driver_id_number = "",
       van = "",
       license_plate = "",
-      status,
       notes
     } = req.body;
+
+    const status = statusForRequiredFields({
+      store,
+      companies_delivering,
+      delivery_company,
+      drivers,
+      van
+    });
 
     await run(
       `
@@ -702,6 +803,31 @@ app.patch("/api/deliveries/:id/delivered", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Unable to save delivery status" });
+  }
+});
+
+app.patch("/api/deliveries/:id/order-ready", async (req, res) => {
+  try {
+    const orderReady = req.body.order_ready_to_ship ? 1 : 0;
+    const delivery = await get("SELECT id FROM deliveries WHERE id = ?", [req.params.id]);
+
+    if (!delivery) {
+      return res.status(404).json({ error: "Delivery not found" });
+    }
+
+    await run(
+      `
+        UPDATE deliveries
+        SET order_ready_to_ship = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `,
+      [orderReady, req.params.id]
+    );
+
+    res.json({ ok: true, order_ready_to_ship: Boolean(orderReady) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Unable to save order ready status" });
   }
 });
 
@@ -829,26 +955,43 @@ app.post("/api/import", upload.single("schedule"), async (req, res) => {
     for (const row of rows.slice(headerRowIndex + 1)) {
       const store = normalizeCell(getValue(row, headerMap, "STORE"));
 
-      if (!store || store.toUpperCase().startsWith("PAGE")) {
+      if (shouldSkipSpreadsheetStore(store)) {
         skipped += 1;
         continue;
       }
+
+      const companyCodes = getFirstValue(row, headerMap, [
+        "Hijnx/Pheotera/Snackbar",
+        "Hijnx/ Pheotera/ Snackbar",
+        "Hijnx/ Pheotera/ Snackbar "
+      ]);
+      const drivers = normalizeMappedName(getValue(row, headerMap, "DRIVERS"), DRIVER_ID_BY_NAME);
+      const van = normalizeMappedName(getValue(row, headerMap, "VAN"), LICENSE_PLATE_BY_VAN);
 
       const delivery = {
         store,
         dispensary_location: "",
         dispensary_address: "",
-        companies_delivering: "",
+        companies_delivering: companiesFromSpreadsheet(companyCodes),
         border_store: normalizeCell(getValue(row, headerMap, "Border Store")),
         needs_display: normalizeCell(getValue(row, headerMap, "NEEDS DISPLAY")),
         date_order_received: excelDateToISO(getValue(row, headerMap, "DATE ORDER RECEIVED")),
-        product_type: normalizeCell(getValue(row, headerMap, "Hijnx/ Pheotera/ Snackbar")),
-        delivery_type: normalizeCell(getValue(row, headerMap, "EO DELIVERY OR OTHER?")),
+        product_type: normalizeCell(companyCodes),
+        delivery_company: normalizeCell(getFirstValue(row, headerMap, [
+          "EO Deliveries or Other",
+          "EO DELIVERY OR OTHER?"
+        ])),
+        delivery_type: normalizeCell(getFirstValue(row, headerMap, [
+          "EO Deliveries or Other",
+          "EO DELIVERY OR OTHER?"
+        ])),
         delivery_date: excelDateToISO(getValue(row, headerMap, "DELIVERY DATE")),
         pickup_time: normalizeCell(getValue(row, headerMap, "PICK-UP TIME")),
         delivery_time: normalizeCell(getValue(row, headerMap, "DELIVERY TIME")),
-        drivers: normalizeCell(getValue(row, headerMap, "DRIVERS")),
-        van: normalizeCell(getValue(row, headerMap, "VAN")),
+        drivers,
+        driver_id_number: findMappedValue(drivers, DRIVER_ID_BY_NAME),
+        van,
+        license_plate: findMappedValue(van, LICENSE_PLATE_BY_VAN),
         source_sheet: sheetName
       };
 

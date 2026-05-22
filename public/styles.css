@@ -223,6 +223,14 @@ body {
   filter: brightness(0.98);
 }
 
+.week-delivery.delivered-week-delivery {
+  border-color: #9ca3af;
+  background: #e5e7eb;
+  color: #4b5563;
+  filter: grayscale(1);
+  opacity: 0.72;
+}
+
 .week-delivery strong,
 .week-delivery span {
   min-width: 0;
@@ -409,6 +417,14 @@ body {
   line-height: 1.18;
 }
 
+.calendar-ready-status,
+.ready-label {
+  color: #047857;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.18;
+}
+
 .calendar-delivered-check {
   display: inline-flex;
   align-items: center;
@@ -424,21 +440,6 @@ body {
   height: 14px;
   min-height: 0;
   margin: 0;
-}
-
-#calendar .fc-event.delivered-calendar-event {
-  background: #e5e7eb;
-  border-color: #9ca3af;
-  filter: grayscale(1);
-  opacity: 0.72;
-}
-
-#calendar .fc-event.delivered-calendar-event .fc-event-main,
-#calendar .fc-event.delivered-calendar-event .calendar-event-content,
-#calendar .fc-event.delivered-calendar-event .calendar-event-delivery-time,
-#calendar .fc-event.delivered-calendar-event .calendar-event-store,
-#calendar .fc-event.delivered-calendar-event .calendar-event-detail {
-  color: #4b5563;
 }
 
 #calendar .fc-daygrid-event-harness {
@@ -483,6 +484,28 @@ body {
 #calendar .fc-daygrid-dot-event.driver-color-4 .fc-daygrid-event-dot,
 #calendar .fc-daygrid-dot-event.driver-unassigned .fc-daygrid-event-dot {
   border-color: var(--driver-color);
+}
+
+#calendar .fc-event.order-ready-calendar-event,
+#calendar .fc-daygrid-dot-event.order-ready-calendar-event {
+  box-shadow: inset 0 0 0 2px #10b981;
+}
+
+#calendar .fc-event.delivered-calendar-event,
+#calendar .fc-daygrid-dot-event.delivered-calendar-event {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+  filter: grayscale(1);
+  opacity: 0.72;
+}
+
+#calendar .fc-event.delivered-calendar-event .fc-event-main,
+#calendar .fc-event.delivered-calendar-event .calendar-event-content,
+#calendar .fc-event.delivered-calendar-event .calendar-event-delivery-time,
+#calendar .fc-event.delivered-calendar-event .calendar-event-store,
+#calendar .fc-event.delivered-calendar-event .calendar-event-detail,
+#calendar .fc-event.delivered-calendar-event .calendar-ready-status {
+  color: #4b5563;
 }
 
 .list-panel {
@@ -661,15 +684,39 @@ fieldset input {
   cursor: pointer;
 }
 
+.delivery-row.delivered-delivery-row {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+  color: #4b5563;
+  filter: grayscale(1);
+  opacity: 0.78;
+}
+
 .delivery-row-main {
   display: grid;
-  grid-template-columns: 140px minmax(180px, 1fr) 160px minmax(180px, 1fr) 170px;
+  grid-template-columns: 140px minmax(180px, 1fr) 160px minmax(180px, 1fr) 150px 170px;
   gap: 10px;
   align-items: center;
 }
 
 .delivery-row:hover {
   filter: brightness(0.98);
+}
+
+.ready-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #047857;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ready-toggle input {
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  margin: 0;
 }
 
 .badge {
