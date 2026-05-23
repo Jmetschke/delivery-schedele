@@ -359,6 +359,7 @@ async function insertOrUpdateDelivery(delivery, checklistItems = []) {
         `
           SELECT id, store, delivery_date, delivery_time FROM deliveries
           WHERE delivery_date = ?
+            AND COALESCE(delivered, 0) = 0
           ORDER BY id
         `,
         [delivery.delivery_date]
@@ -367,6 +368,7 @@ async function insertOrUpdateDelivery(delivery, checklistItems = []) {
         `
           SELECT id, store, delivery_date, delivery_time FROM deliveries
           WHERE store = ? AND delivery_date = ? AND delivery_time = ?
+            AND COALESCE(delivered, 0) = 0
           ORDER BY id
         `,
         [delivery.store, delivery.delivery_date, delivery.delivery_time]
