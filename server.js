@@ -385,7 +385,7 @@ async function insertOrUpdateDelivery(delivery, checklistItems = []) {
       `
         UPDATE deliveries
         SET store = ?, dispensary_location = ?, dispensary_address = ?,
-            companies_delivering = ?, delivery_company = ?, border_store = ?,
+            companies_delivering = ?, delivery_company = ?,
             needs_display = ?, date_order_received = ?,
             product_type = ?, delivery_type = ?, delivery_date = ?, delivery_time = ?,
             pickup_time = ?, drivers = ?,
@@ -399,7 +399,6 @@ async function insertOrUpdateDelivery(delivery, checklistItems = []) {
         delivery.dispensary_address,
         delivery.companies_delivering,
         delivery.delivery_company,
-        delivery.border_store,
         delivery.needs_display,
         delivery.date_order_received,
         delivery.product_type,
@@ -422,11 +421,11 @@ async function insertOrUpdateDelivery(delivery, checklistItems = []) {
       `
         INSERT INTO deliveries (
           store, dispensary_location, dispensary_address, companies_delivering,
-          delivery_company, border_store, needs_display, date_order_received,
+          delivery_company, needs_display, date_order_received,
           product_type, delivery_type, delivery_date, pickup_time,
           delivery_time, drivers, driver_id_number, van, license_plate, status, source_sheet
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         delivery.store,
@@ -434,7 +433,6 @@ async function insertOrUpdateDelivery(delivery, checklistItems = []) {
         delivery.dispensary_address,
         delivery.companies_delivering,
         delivery.delivery_company,
-        delivery.border_store,
         delivery.needs_display,
         delivery.date_order_received,
         delivery.product_type,
@@ -702,7 +700,6 @@ app.post("/api/deliveries", async (req, res) => {
       driver_id_number,
       van,
       license_plate,
-      border_store,
       needs_display,
       date_order_received,
       delivery_date,
@@ -729,10 +726,10 @@ app.post("/api/deliveries", async (req, res) => {
       `
         INSERT INTO deliveries (
           store, dispensary_location, dispensary_address, companies_delivering,
-          delivery_company, drivers, driver_id_number, van, license_plate, border_store, needs_display,
+          delivery_company, drivers, driver_id_number, van, license_plate, needs_display,
           date_order_received, delivery_date, delivery_time, pickup_time, status
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         store,
@@ -744,7 +741,6 @@ app.post("/api/deliveries", async (req, res) => {
         driver_id_number,
         van,
         license_plate,
-        border_store,
         needs_display,
         date_order_received,
         delivery_date,
@@ -779,7 +775,6 @@ app.patch("/api/deliveries/:id", async (req, res) => {
       dispensary_address,
       companies_delivering,
       delivery_company,
-      border_store,
       needs_display,
       date_order_received,
       product_type = "",
@@ -806,7 +801,7 @@ app.patch("/api/deliveries/:id", async (req, res) => {
       `
         UPDATE deliveries
         SET store = ?, dispensary_location = ?, dispensary_address = ?,
-            companies_delivering = ?, delivery_company = ?, border_store = ?,
+            companies_delivering = ?, delivery_company = ?,
             needs_display = ?, date_order_received = ?,
             product_type = ?, delivery_type = ?, delivery_date = ?, pickup_time = ?,
             delivery_time = ?, drivers = ?, driver_id_number = ?, van = ?, license_plate = ?,
@@ -820,7 +815,6 @@ app.patch("/api/deliveries/:id", async (req, res) => {
         dispensary_address,
         companies_delivering,
         delivery_company,
-        border_store,
         needs_display,
         date_order_received,
         product_type,
@@ -1040,8 +1034,12 @@ app.post("/api/import", upload.single("schedule"), async (req, res) => {
         dispensary_location: "",
         dispensary_address: "",
         companies_delivering: companiesFromSpreadsheet(companyCodes),
-        border_store: normalizeCell(getValue(row, headerMap, "Border Store")),
-        needs_display: normalizeCell(getValue(row, headerMap, "NEEDS DISPLAY")),
+        needs_display: normalizeCell(getFirstValue(row, headerMap, [
+          "Needs Display",
+          "Needs Displays",
+          "NEEDS DISPLAY",
+          "NEEDS DISPLAYS"
+        ])),
         date_order_received: excelDateToISO(getValue(row, headerMap, "DATE ORDER RECEIVED")),
         product_type: normalizeCell(companyCodes),
         delivery_company: normalizeCell(getFirstValue(row, headerMap, [

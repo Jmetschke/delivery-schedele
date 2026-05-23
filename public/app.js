@@ -447,8 +447,7 @@ async function createDelivery(event) {
     dispensary_address: document.getElementById("newDispensaryAddress").value.trim(),
     companies_delivering: selectedCheckboxValues("newCompaniesDelivering").join(", "),
     needs_display: document.getElementById("newNeedsDisplay").value,
-    date_order_received: document.getElementById("newDateOrderReceived").value,
-    border_store: document.getElementById("newBorderStore").value
+    date_order_received: document.getElementById("newDateOrderReceived").value
   };
 
   result.textContent = "Adding delivery...";
@@ -780,7 +779,6 @@ async function openDelivery(id) {
   document.getElementById("dispensaryLocation").value = d.dispensary_location || "";
   document.getElementById("dispensaryAddress").value = d.dispensary_address || "";
   setSelectedCheckboxValues("companiesDelivering", d.companies_delivering);
-  document.getElementById("borderStore").value = d.border_store || "";
   document.getElementById("needsDisplay").value = d.needs_display || "";
   document.getElementById("dateOrderReceived").value = d.date_order_received || "";
   document.getElementById("deliveryDate").value = d.delivery_date || "";
@@ -818,7 +816,6 @@ async function saveDelivery(event) {
     dispensary_location: document.getElementById("dispensaryLocation").value.trim(),
     dispensary_address: document.getElementById("dispensaryAddress").value.trim(),
     companies_delivering: selectedCheckboxValues("companiesDelivering").join(", "),
-    border_store: document.getElementById("borderStore").value,
     needs_display: document.getElementById("needsDisplay").value,
     date_order_received: document.getElementById("dateOrderReceived").value,
     delivery_date: document.getElementById("deliveryDate").value,
