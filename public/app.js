@@ -43,7 +43,7 @@ function setupCalendar() {
 
   calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: phoneView.matches ? "listFourWeeks" : "rollingFourWeeks",
-    initialDate: startOfUpcomingCalendar(),
+    initialDate: startOfCurrentWeek(),
     height: "auto",
     headerToolbar: {
       left: "prev,next today",
@@ -54,13 +54,13 @@ function setupCalendar() {
       rollingFourWeeks: {
         type: "dayGrid",
         duration: { weeks: 4 },
-        dateAlignment: "day",
+        dateAlignment: "week",
         buttonText: "4 weeks"
       },
       listFourWeeks: {
         type: "list",
         duration: { weeks: 4 },
-        dateAlignment: "day",
+        dateAlignment: "week",
         buttonText: "4 weeks"
       }
     },
@@ -99,9 +99,9 @@ function setupCalendar() {
       });
 
       if (isPhone && calendar.view.type !== "listFourWeeks") {
-        calendar.changeView("listFourWeeks", startOfUpcomingCalendar());
+        calendar.changeView("listFourWeeks", startOfCurrentWeek());
       } else if (!isPhone && calendar.view.type === "listFourWeeks") {
-        calendar.changeView("rollingFourWeeks", startOfUpcomingCalendar());
+        calendar.changeView("rollingFourWeeks", startOfCurrentWeek());
       }
     }
   });
