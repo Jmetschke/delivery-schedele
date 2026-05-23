@@ -196,6 +196,7 @@ function shouldSkipSpreadsheetStore(store) {
     !normalized ||
     normalized.startsWith("PAGE") ||
     normalized === "PROCESSING PHASE 1" ||
+    normalized === "PROCESSING PHASE1" ||
     normalized === "STORE" ||
     normalized === "DELIVERY DATE"
   );
