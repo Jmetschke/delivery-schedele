@@ -192,7 +192,13 @@ function companiesFromSpreadsheet(value) {
 
 function shouldSkipSpreadsheetStore(store) {
   const normalized = normalizeCell(store).toUpperCase();
-  return !normalized || normalized.startsWith("PAGE") || normalized === "PROCESSING PHASE 1" || normalized === "DELIVERY DATE";
+  return (
+    !normalized ||
+    normalized.startsWith("PAGE") ||
+    normalized === "PROCESSING PHASE 1" ||
+    normalized === "STORE" ||
+    normalized === "DELIVERY DATE"
+  );
 }
 
 function spreadsheetDeliveryKey(delivery) {
