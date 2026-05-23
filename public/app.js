@@ -43,7 +43,7 @@ function setupCalendar() {
 
   calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: phoneView.matches ? "listFourWeeks" : "rollingFourWeeks",
-    initialDate: startOfCurrentWeek(),
+    initialDate: startOfUpcomingCalendar(),
     height: "auto",
     headerToolbar: {
       left: "prev,next today",
@@ -54,13 +54,13 @@ function setupCalendar() {
       rollingFourWeeks: {
         type: "dayGrid",
         duration: { weeks: 4 },
-        dateAlignment: "week",
+        dateAlignment: "day",
         buttonText: "4 weeks"
       },
       listFourWeeks: {
         type: "list",
         duration: { weeks: 4 },
-        dateAlignment: "week",
+        dateAlignment: "day",
         buttonText: "4 weeks"
       }
     },
@@ -99,9 +99,9 @@ function setupCalendar() {
       });
 
       if (isPhone && calendar.view.type !== "listFourWeeks") {
-        calendar.changeView("listFourWeeks", startOfCurrentWeek());
+        calendar.changeView("listFourWeeks", startOfUpcomingCalendar());
       } else if (!isPhone && calendar.view.type === "listFourWeeks") {
-        calendar.changeView("rollingFourWeeks", startOfCurrentWeek());
+        calendar.changeView("rollingFourWeeks", startOfUpcomingCalendar());
       }
     }
   });
@@ -526,8 +526,13 @@ function startOfCurrentWeek() {
   const today = new Date();
   const start = new Date(today);
   start.setHours(0, 0, 0, 0);
-  start.setDate(today.getDate() - today.getDay());
+  const daysSinceMonday = (today.getDay() + 6) % 7;
+  start.setDate(today.getDate() - daysSinceMonday);
   return start;
+}
+
+function startOfUpcomingCalendar() {
+  return addDays(startOfCurrentWeek(), 5);
 }
 
 function addDays(date, days) {
@@ -549,12 +554,15 @@ function formatWeekDate(date, options) {
 
 function renderWeekSchedule() {
   const schedule = document.getElementById("weekSchedule");
+  const title = document.getElementById("weekTitle");
   const range = document.getElementById("weekRange");
   const count = document.getElementById("weekCount");
-  const start = startOfCurrentWeek();
+  const start = startOfUpcomingCalendar();
   const days = Array.from({ length: 7 }, (_, index) => addDays(start, index));
   const end = days[6];
   const todayIso = isoDate(new Date());
+  const startIso = isoDate(start);
+  const endIso = isoDate(end);
   const dayDeliveriesByDate = days.reduce((grouped, day) => {
     const dayIso = isoDate(day);
     grouped[dayIso] = deliveries
@@ -564,6 +572,7 @@ function renderWeekSchedule() {
   }, {});
   const weekDeliveries = Object.values(dayDeliveriesByDate).flat();
 
+  title.textContent = todayIso >= startIso && todayIso <= endIso ? "Current Week" : "Upcoming Week";
   range.textContent = `${formatWeekDate(start, {
     month: "short",
     day: "numeric"
