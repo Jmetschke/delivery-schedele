@@ -878,8 +878,7 @@ fieldset input {
   }
 
   .topbar p {
-    font-size: 14px;
-    line-height: 1.35;
+    display: none;
   }
 
   .topbar-link-button {
@@ -899,8 +898,8 @@ fieldset input {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
-    width: min(100%, 390px);
-    max-width: 100vw;
+    width: 100%;
+    max-width: none;
     padding: 8px 12px;
     background: #fff;
     border-bottom: 1px solid #e5e7eb;
@@ -941,6 +940,13 @@ fieldset input {
     box-shadow: none;
   }
 
+  .entry-panel h2,
+  .unscheduled-panel h2,
+  .list-panel h2 {
+    margin-top: 0;
+    font-size: 20px;
+  }
+
   .unscheduled-panel {
     order: 2;
   }
@@ -971,6 +977,31 @@ fieldset input {
   .list-header select {
     width: 100%;
     max-width: none;
+  }
+
+  .week-day {
+    border-radius: 7px;
+  }
+
+  .week-day-header {
+    padding: 10px;
+  }
+
+  .week-day.weekend:not(.has-deliveries) .week-day-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+  }
+
+  .week-day.weekend:not(.has-deliveries) .week-day-deliveries {
+    min-height: 0;
+    padding: 10px;
+  }
+
+  .week-day.weekend:not(.has-deliveries) .empty-day {
+    writing-mode: horizontal-tb;
+    font-size: 13px;
+    text-align: left;
   }
 
   .calendar-card {
@@ -1024,6 +1055,10 @@ fieldset input {
     overflow-wrap: anywhere;
   }
 
+  .spreadsheet-import-form {
+    grid-template-columns: 1fr;
+  }
+
   fieldset {
     grid-template-columns: 1fr;
   }
@@ -1038,6 +1073,26 @@ fieldset input {
 
   .delivery-row-main {
     gap: 8px;
+  }
+
+  .delivery-row {
+    padding: 12px;
+  }
+
+  .delivery-row-main > div,
+  .delivery-row-main > label {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .delivery-row-main > div:not(:last-child) {
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+  }
+
+  .ready-toggle {
+    min-height: 42px;
+    align-items: center;
   }
 
   .drawer-content {
