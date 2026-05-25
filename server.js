@@ -206,8 +206,6 @@ function spreadsheetDeliveryKey(delivery) {
   const store = normalizeCell(delivery.store).toUpperCase();
   const deliveryDate = normalizeCell(delivery.delivery_date);
 
-  if (deliveryDate) return `${store}|${deliveryDate}`;
-
   return [
     store,
     deliveryDate,
@@ -219,9 +217,16 @@ function deliveryDuplicateKey(delivery) {
   const store = normalizeCell(delivery.store).replace(/\s+/g, " ").toUpperCase();
   const deliveryDate = normalizeCell(delivery.delivery_date);
 
-  if (deliveryDate) return `${store}|${deliveryDate}`;
-
   return [store, deliveryDate, normalizeCell(delivery.delivery_time)].join("|");
+}
+
+function storeKey(value) {
+  return normalizeCell(value).replace(/\s+/g, " ").toUpperCase();
+}
+
+function deliveryIsBeforeImportWindow(delivery, importStartDate) {
+  const deliveryDate = normalizeCell(delivery.delivery_date);
+  return Boolean(importStartDate && deliveryDate && deliveryDate < importStartDate);
 }
 
 function dedupeDeliveryRows(rows) {
@@ -352,7 +357,7 @@ async function ensureChecklistRows(deliveryId) {
   }
 }
 
-async function insertOrUpdateDelivery(delivery, checklistItems = []) {
+async function findImportMatch(delivery, importStartDate) {
   const hasDeliveryDate = hasValue(delivery.delivery_date);
   const candidateDeliveries = hasDeliveryDate
     ? await all(
@@ -374,10 +379,46 @@ async function insertOrUpdateDelivery(delivery, checklistItems = []) {
         [delivery.store, delivery.delivery_date, delivery.delivery_time]
       );
   const deliveryKey = deliveryDuplicateKey(delivery);
-  const existingDeliveries = candidateDeliveries.filter(
+  const exactMatches = candidateDeliveries.filter(
     (candidate) => deliveryDuplicateKey(candidate) === deliveryKey
   );
 
+  if (exactMatches.length || !importStartDate) {
+    return exactMatches;
+  }
+
+  const normalizedStore = storeKey(delivery.store);
+
+  if (hasDeliveryDate && !deliveryIsBeforeImportWindow(delivery, importStartDate)) {
+    const sameDateConflicts = candidateDeliveries.filter(
+      (candidate) =>
+        storeKey(candidate.store) === normalizedStore &&
+        !deliveryIsBeforeImportWindow(candidate, importStartDate)
+    );
+
+    if (sameDateConflicts.length) {
+      return sameDateConflicts;
+    }
+  }
+
+  const unscheduledConflicts = await all(
+    `
+      SELECT id, store, delivery_date, delivery_time FROM deliveries
+      WHERE store = ?
+        AND (delivery_date IS NULL OR delivery_date = '')
+        AND COALESCE(delivered, 0) = 0
+      ORDER BY id
+    `,
+    [delivery.store]
+  );
+
+  return unscheduledConflicts.filter(
+    (candidate) => storeKey(candidate.store) === normalizedStore
+  );
+}
+
+async function insertOrUpdateDelivery(delivery, checklistItems = [], options = {}) {
+  const existingDeliveries = await findImportMatch(delivery, options.importStartDate);
   let deliveryId;
 
   if (existingDeliveries.length) {
@@ -1021,6 +1062,7 @@ app.post("/api/import", upload.single("schedule"), async (req, res) => {
     let skipped = 0;
 
     const spreadsheetDeliveries = new Map();
+    const spreadsheetDates = [];
 
     for (const row of rows.slice(headerRowIndex + 1)) {
       const store = normalizeCell(getValue(row, headerMap, "STORE"));
@@ -1072,10 +1114,15 @@ app.post("/api/import", upload.single("schedule"), async (req, res) => {
       const key = spreadsheetDeliveryKey(delivery);
       if (spreadsheetDeliveries.has(key)) skipped += 1;
       spreadsheetDeliveries.set(key, delivery);
+      if (delivery.delivery_date) spreadsheetDates.push(delivery.delivery_date);
     }
 
+    const importStartDate = spreadsheetDates.length
+      ? spreadsheetDates.sort()[0]
+      : null;
+
     for (const delivery of spreadsheetDeliveries.values()) {
-      await insertOrUpdateDelivery(delivery);
+      await insertOrUpdateDelivery(delivery, [], { importStartDate });
       imported += 1;
     }
 
