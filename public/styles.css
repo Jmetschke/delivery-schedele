@@ -325,7 +325,8 @@ body {
 }
 
 #calendar {
-  min-width: 860px;
+  --weekend-calendar-column: 56px;
+  min-width: 820px;
 }
 
 #calendar .fc-daygrid-day-frame {
@@ -339,12 +340,8 @@ body {
 
 #calendar .fc-day-sun,
 #calendar .fc-day-sat {
-  width: 52px;
-}
-
-#calendar.has-sunday-deliveries .fc-day-sun,
-#calendar.has-saturday-deliveries .fc-day-sat {
-  width: auto;
+  width: var(--weekend-calendar-column);
+  max-width: var(--weekend-calendar-column);
 }
 
 #calendar .fc-daygrid-day.fc-day-sun:not(.fc-day-today),
@@ -354,12 +351,25 @@ body {
 
 #calendar .fc-daygrid-day.fc-day-sun .fc-daygrid-day-frame,
 #calendar .fc-daygrid-day.fc-day-sat .fc-daygrid-day-frame {
-  min-height: 54px;
+  min-height: 132px;
+  padding: 2px;
 }
 
-#calendar.has-sunday-deliveries .fc-daygrid-day.fc-day-sun .fc-daygrid-day-frame,
-#calendar.has-saturday-deliveries .fc-daygrid-day.fc-day-sat .fc-daygrid-day-frame {
-  min-height: 132px;
+#calendar .fc-day-sun .fc-col-header-cell-cushion,
+#calendar .fc-day-sat .fc-col-header-cell-cushion {
+  font-size: 11px;
+  padding-inline: 2px;
+}
+
+#calendar .fc-daygrid-day.fc-day-sun .fc-daygrid-day-top,
+#calendar .fc-daygrid-day.fc-day-sat .fc-daygrid-day-top {
+  justify-content: center;
+}
+
+#calendar .fc-daygrid-day.fc-day-sun .fc-daygrid-day-number,
+#calendar .fc-daygrid-day.fc-day-sat .fc-daygrid-day-number {
+  font-size: 11px;
+  padding: 2px;
 }
 
 #calendar .fc-daygrid-event,
@@ -401,6 +411,27 @@ body {
   gap: 2px;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+#calendar .weekend-calendar-event {
+  margin-inline: 1px;
+  padding: 1px 2px;
+}
+
+#calendar .weekend-calendar-event .calendar-event-content {
+  gap: 1px;
+}
+
+#calendar .weekend-calendar-event .calendar-event-delivery-time,
+#calendar .weekend-calendar-event .calendar-event-store {
+  font-size: 10px;
+  line-height: 1.05;
+}
+
+#calendar .weekend-calendar-event .calendar-event-detail,
+#calendar .weekend-calendar-event .calendar-ready-status,
+#calendar .weekend-calendar-event .calendar-delivered-check {
+  display: none;
 }
 
 .calendar-event-delivery-time,

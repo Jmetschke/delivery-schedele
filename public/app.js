@@ -44,6 +44,8 @@ function setupCalendar() {
   calendar = new FullCalendar.Calendar(calendarEl, {
     initialView: phoneView.matches ? "listFourWeeks" : "rollingFourWeeks",
     initialDate: startOfCurrentWeek(),
+    firstDay: 1,
+    weekends: true,
     height: "auto",
     headerToolbar: {
       left: "prev,next today",
@@ -67,6 +69,11 @@ function setupCalendar() {
     eventSources: ["/api/calendar-events"],
     eventClassNames(info) {
       const classes = [driverColorClass(info.event.extendedProps.drivers)];
+      const day = info.event.start?.getDay();
+
+      if (day === 0 || day === 6) {
+        classes.push("weekend-calendar-event");
+      }
 
       if (Number(info.event.extendedProps.delivered)) {
         classes.push("delivered-calendar-event");
@@ -83,12 +90,6 @@ function setupCalendar() {
     },
     eventClick(info) {
       openDelivery(info.event.id);
-    },
-    datesSet() {
-      updateCalendarWeekendColumns();
-    },
-    eventsSet() {
-      updateCalendarWeekendColumns();
     },
     windowResize() {
       const isPhone = phoneView.matches;
@@ -532,7 +533,10 @@ function startOfCurrentWeek() {
 }
 
 function startOfUpcomingCalendar() {
-  return addDays(startOfCurrentWeek(), 5);
+  const today = new Date();
+  const start = startOfCurrentWeek();
+
+  return today.getDay() === 6 ? addDays(start, 7) : start;
 }
 
 function addDays(date, days) {
@@ -620,24 +624,6 @@ function renderWeekSchedule() {
       `;
     })
     .join("");
-}
-
-function updateCalendarWeekendColumns() {
-  if (!calendar) return;
-
-  const visibleEvents = calendar.getEvents().filter((event) => {
-    if (!event.start) return false;
-    return event.start >= calendar.view.activeStart && event.start < calendar.view.activeEnd;
-  });
-  const scheduledWeekendDays = new Set(
-    visibleEvents
-      .filter((event) => event.start.getDay() === 0 || event.start.getDay() === 6)
-      .map((event) => event.start.getDay())
-  );
-  const calendarEl = document.getElementById("calendar");
-
-  calendarEl.classList.toggle("has-sunday-deliveries", scheduledWeekendDays.has(0));
-  calendarEl.classList.toggle("has-saturday-deliveries", scheduledWeekendDays.has(6));
 }
 
 function renderWeekDelivery(delivery) {
