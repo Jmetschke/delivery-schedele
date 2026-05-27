@@ -102,6 +102,11 @@ const CHECKLIST_COLUMNS = [
     key: "delivery_confirmed",
     label: "Delivery confirmed",
     spreadsheetHeader: "DELIVERY CONFIRMED?"
+  },
+  {
+    key: "folder_manifest_invoice",
+    label: "Folder contains manifest + invoice copies",
+    spreadsheetHeader: "FOLDER CONTAINS MANIFEST + INVOICE COPIES?"
   }
 ];
 
@@ -143,9 +148,29 @@ function isCompletedChecklistValue(value) {
   const text = normalizeCell(value).toUpperCase();
   if (!text) return 0;
   if (["N", "NO", "NA", "N/A"].includes(text)) return 0;
-  if (text.includes("Y")) return 1;
+  if (text.includes("YY") || text === "Y" || text === "YES") return 1;
   if (text === "DONE" || text === "COMPLETE" || text === "COMPLETED") return 1;
   return 0;
+}
+
+function isProgressChecklistValue(value) {
+  const text = normalizeCell(value).toUpperCase();
+  return Boolean(text && !["N", "NO", "NA", "N/A"].includes(text));
+}
+
+function checklistCompletedForItem(itemKey, value) {
+  const text = normalizeCell(value).toUpperCase();
+  if (!text || ["N", "NO", "NA", "N/A"].includes(text)) return 0;
+
+  if (["exit_labels_printed", "sb_labels_applied", "picked_packed", "manifest_printed"].includes(itemKey)) {
+    return text.includes("YY") ? 1 : 0;
+  }
+
+  if (["exit_labels_made", "sb_labels_printed", "manifest_created"].includes(itemKey)) {
+    return text.includes("Y") ? 1 : 0;
+  }
+
+  return isCompletedChecklistValue(value);
 }
 
 function getValue(row, headerMap, headerName) {
@@ -310,7 +335,7 @@ async function updateDeliveryStatusFromChecklist(deliveryId) {
   if (!delivery) return null;
 
   const checklistItems = await all(
-    "SELECT item_key, completed FROM delivery_checklist WHERE delivery_id = ?",
+    "SELECT item_key, completed, raw_value FROM delivery_checklist WHERE delivery_id = ?",
     [deliveryId]
   );
   const activeItems = checklistItems.filter((item) =>
@@ -318,22 +343,22 @@ async function updateDeliveryStatusFromChecklist(deliveryId) {
   );
   const totalCount = activeItems.length;
   const completedCount = activeItems.filter((item) => item.completed).length;
+  const hasStartedChecklist = activeItems.some(
+    (item) => item.completed || isProgressChecklistValue(item.raw_value)
+  );
   const checklistComplete = totalCount > 0 && completedCount === totalCount;
   const requiredFieldsComplete = hasRequiredDeliveryFields(delivery);
   const status =
     checklistComplete && requiredFieldsComplete
       ? "Completed"
-      : completedCount > 0 || checklistComplete
+      : hasStartedChecklist
         ? "In Progress"
         : "Not Started";
-  const deliveredClause =
-    status === "Completed"
-      ? ", delivered = 1, delivered_at = COALESCE(delivered_at, CURRENT_TIMESTAMP)"
-      : "";
+  const orderReady = checklistComplete && requiredFieldsComplete ? 1 : delivery.order_ready_to_ship;
 
   await run(
-    `UPDATE deliveries SET status = ?${deliveredClause}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-    [status, deliveryId]
+    `UPDATE deliveries SET status = ?, order_ready_to_ship = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    [status, orderReady, deliveryId]
   );
 
   return {
@@ -440,6 +465,12 @@ async function insertOrUpdateDelivery(delivery, checklistItems = [], options = {
             product_type = ?, delivery_type = ?, delivery_date = ?, delivery_time = ?,
             pickup_time = ?, drivers = ?,
             driver_id_number = ?, van = ?, license_plate = ?, status = ?,
+            delivered = COALESCE(?, delivered),
+            delivered_at = CASE
+              WHEN ? = 1 THEN COALESCE(delivered_at, CURRENT_TIMESTAMP)
+              WHEN ? = 0 THEN NULL
+              ELSE delivered_at
+            END,
             source_sheet = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `,
@@ -461,6 +492,9 @@ async function insertOrUpdateDelivery(delivery, checklistItems = [], options = {
         delivery.van,
         delivery.license_plate,
         statusForRequiredFields(delivery),
+        delivery.delivered ?? null,
+        delivery.delivered ?? null,
+        delivery.delivered ?? null,
         delivery.source_sheet,
         deliveryId
       ]
@@ -473,9 +507,10 @@ async function insertOrUpdateDelivery(delivery, checklistItems = [], options = {
           store, dispensary_location, dispensary_address, companies_delivering,
           delivery_company, needs_display, date_order_received,
           product_type, delivery_type, delivery_date, pickup_time,
-          delivery_time, drivers, driver_id_number, van, license_plate, status, source_sheet
+          delivery_time, drivers, driver_id_number, van, license_plate, delivered, delivered_at,
+          status, source_sheet
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         delivery.store,
@@ -494,6 +529,8 @@ async function insertOrUpdateDelivery(delivery, checklistItems = [], options = {
         delivery.driver_id_number,
         delivery.van,
         delivery.license_plate,
+        delivery.delivered ? 1 : 0,
+        delivery.delivered ? new Date().toISOString() : null,
         statusForRequiredFields(delivery),
         delivery.source_sheet
       ]
@@ -513,6 +550,10 @@ async function insertOrUpdateDelivery(delivery, checklistItems = [], options = {
       `,
       [deliveryId, item.key, item.label, item.completed, item.raw_value]
     );
+  }
+
+  if (checklistItems.length) {
+    await updateDeliveryStatusFromChecklist(deliveryId);
   }
 
   return deliveryId;
@@ -582,10 +623,6 @@ async function syncChecklistDefinitions() {
     await run("DELETE FROM delivery_checklist WHERE delivery_id = ? AND item_key = 'sb_labels'", [
       delivery.id
     ]);
-    await run(
-      "DELETE FROM delivery_checklist WHERE delivery_id = ? AND item_key = 'folder_manifest_invoice'",
-      [delivery.id]
-    );
   }
 }
 
@@ -640,7 +677,7 @@ app.get("/api/deliveries", async (req, res) => {
     const placeholders = rows.map(() => "?").join(",");
     const checklistRows = await all(
       `
-        SELECT delivery_id, item_key, label, completed
+        SELECT delivery_id, item_key, label, completed, raw_value
         FROM delivery_checklist
         WHERE delivery_id IN (${placeholders})
         ORDER BY id
@@ -1079,6 +1116,7 @@ app.post("/api/import", upload.single("schedule"), async (req, res) => {
       ]);
       const drivers = normalizeMappedName(getValue(row, headerMap, "DRIVERS"), DRIVER_ID_BY_NAME);
       const van = normalizeMappedName(getValue(row, headerMap, "VAN"), LICENSE_PLATE_BY_VAN);
+      const deliveryConfirmedRaw = getValue(row, headerMap, "DELIVERY CONFIRMED?");
 
       const delivery = {
         store,
@@ -1110,10 +1148,23 @@ app.post("/api/import", upload.single("schedule"), async (req, res) => {
         license_plate: findMappedValue(van, LICENSE_PLATE_BY_VAN),
         source_sheet: sheetName
       };
+      const checklistItems = CHECKLIST_COLUMNS.map((item) => {
+        const rawValue =
+          item.key === "delivery_confirmed"
+            ? deliveryConfirmedRaw
+            : getValue(row, headerMap, item.spreadsheetHeader);
+
+        return {
+          key: item.key,
+          label: item.label,
+          completed: checklistCompletedForItem(item.key, rawValue),
+          raw_value: normalizeCell(rawValue)
+        };
+      });
 
       const key = spreadsheetDeliveryKey(delivery);
       if (spreadsheetDeliveries.has(key)) skipped += 1;
-      spreadsheetDeliveries.set(key, delivery);
+      spreadsheetDeliveries.set(key, { delivery, checklistItems });
       if (delivery.delivery_date) spreadsheetDates.push(delivery.delivery_date);
     }
 
@@ -1121,8 +1172,8 @@ app.post("/api/import", upload.single("schedule"), async (req, res) => {
       ? spreadsheetDates.sort()[0]
       : null;
 
-    for (const delivery of spreadsheetDeliveries.values()) {
-      await insertOrUpdateDelivery(delivery, [], { importStartDate });
+    for (const entry of spreadsheetDeliveries.values()) {
+      await insertOrUpdateDelivery(entry.delivery, entry.checklistItems, { importStartDate });
       imported += 1;
     }
 

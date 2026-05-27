@@ -633,13 +633,22 @@ function renderWeekDelivery(delivery) {
       : delivery.status === "In Progress"
         ? "in-progress"
         : "";
+  const completion = deliveryCompletionSummary(delivery);
+  const confirmed = deliveryConfirmedSummary(delivery);
 
-  const logistics = [
-    delivery.pickup_time ? `PU ${delivery.pickup_time}` : "",
-    delivery.delivery_time ? `DEL ${delivery.delivery_time}` : "",
-    delivery.delivery_company,
-    delivery.drivers ? `Driver: ${delivery.drivers}` : "",
-    delivery.van ? `Van: ${delivery.van}` : ""
+  const lineOne = [
+    delivery.delivery_date || "Date TBD",
+    delivery.delivery_time ? `DEL ${delivery.delivery_time}` : "DEL TBD",
+    delivery.pickup_time ? `PU ${delivery.pickup_time}` : "PU TBD",
+    confirmed
+  ];
+  const lineTwo = [
+    delivery.delivery_company || "Company TBD",
+    delivery.drivers ? `Driver: ${delivery.drivers}` : "Driver TBD",
+    delivery.driver_id_number ? `ID: ${delivery.driver_id_number}` : "",
+    delivery.van ? `Van: ${delivery.van}` : "Van TBD",
+    delivery.license_plate ? `Plate: ${delivery.license_plate}` : "",
+    completion
   ].filter(Boolean);
   const classes = [
     "week-delivery",
@@ -652,9 +661,9 @@ function renderWeekDelivery(delivery) {
 
   return `
     <button class="${classes}" type="button" onclick="openDelivery(${delivery.id})">
-      <span class="week-delivery-time">${escapeHtml(logistics.join(" | ") || "Time TBD")}</span>
       <strong>${escapeHtml(delivery.store)}</strong>
-      <span>${escapeHtml(delivery.dispensary_location || delivery.companies_delivering || "")}</span>
+      <span class="week-delivery-time">${escapeHtml(lineOne.join(" | "))}</span>
+      <span>${escapeHtml(lineTwo.join(" | "))}</span>
       ${Number(delivery.order_ready_to_ship) ? '<span class="ready-label">Ready to ship</span>' : ""}
       <span class="badge ${badgeClass}">${escapeHtml(delivery.status || "Not Started")}</span>
     </button>
@@ -729,10 +738,17 @@ function renderDeliveryList() {
       return `
         <div class="delivery-row ${driverColorClass(delivery.drivers)} ${Number(delivery.delivered) ? "delivered-delivery-row" : ""}" onclick="openDelivery(${delivery.id})">
           <div class="delivery-row-main">
-            <div>${delivery.delivery_date || ""}</div>
-            <div><strong>${escapeHtml(delivery.store)}</strong><br>${escapeHtml(delivery.dispensary_location || delivery.dispensary_address || "")}</div>
-            <div>${escapeHtml([delivery.pickup_time ? `PU ${delivery.pickup_time}` : "", delivery.delivery_time ? `DEL ${delivery.delivery_time}` : ""].filter(Boolean).join(" / "))}</div>
-            <div>${escapeHtml([delivery.delivery_company, delivery.drivers ? `Driver: ${delivery.drivers}` : "", delivery.van ? `Van: ${delivery.van}` : ""].filter(Boolean).join(" / "))}</div>
+            <div class="list-entry-primary">
+              <strong>${escapeHtml(delivery.store)}</strong>
+              <span>${escapeHtml([
+                delivery.delivery_date || "Date TBD",
+                delivery.delivery_time ? `DEL ${delivery.delivery_time}` : "DEL TBD",
+                delivery.pickup_time ? `PU ${delivery.pickup_time}` : "PU TBD",
+                deliveryConfirmedSummary(delivery)
+              ].join(" / "))}</span>
+            </div>
+            <div>${escapeHtml([delivery.delivery_company || "Company TBD", delivery.drivers ? `Driver: ${delivery.drivers}` : "Driver TBD", delivery.driver_id_number ? `ID: ${delivery.driver_id_number}` : "", delivery.van ? `Van: ${delivery.van}` : "Van TBD", delivery.license_plate ? `Plate: ${delivery.license_plate}` : ""].filter(Boolean).join(" / "))}</div>
+            <div>${escapeHtml(deliveryCompletionSummary(delivery))}</div>
             <div><span class="badge ${badgeClass}">${escapeHtml(delivery.status || "Not Started")}</span></div>
             <label class="ready-toggle" onclick="event.stopPropagation()">
               <input
@@ -747,6 +763,41 @@ function renderDeliveryList() {
       `;
     })
     .join("");
+}
+
+function activeChecklistItems(delivery) {
+  const selectedCompanies = new Set(
+    String(delivery.companies_delivering || "")
+      .split(",")
+      .map((company) => company.trim().toUpperCase())
+      .filter(Boolean)
+  );
+
+  return (delivery.checklist || []).filter((item) => {
+    if (!["sb_labels_printed", "sb_labels_applied"].includes(item.item_key)) return true;
+    return selectedCompanies.has("SB");
+  });
+}
+
+function deliveryCompletionSummary(delivery) {
+  const items = activeChecklistItems(delivery);
+  const total = items.length;
+  const completed = items.filter((item) => Number(item.completed)).length;
+
+  if (!total) return "0% complete";
+
+  const percent = Math.round((completed / total) * 100);
+  return Number(delivery.order_ready_to_ship)
+    ? `${percent}% complete | Ready`
+    : `${percent}% complete`;
+}
+
+function deliveryConfirmedSummary(delivery) {
+  const item = (delivery.checklist || []).find(
+    (checklistItem) => checklistItem.item_key === "delivery_confirmed"
+  );
+
+  return Number(item?.completed) ? "Confirmed: Yes" : "Confirmed: No";
 }
 
 function compareDeliveryListRows(a, b) {
@@ -786,9 +837,56 @@ async function openDelivery(id) {
   document.getElementById("licensePlate").value = d.license_plate || "";
   document.getElementById("status").value = d.status || "Not Started";
   document.getElementById("notes").value = d.notes || "";
+  renderChecklist(data.checklist || [], d);
 
   document.getElementById("drawer").classList.add("open");
   document.getElementById("drawer").setAttribute("aria-hidden", "false");
+}
+
+function renderChecklist(checklist, delivery) {
+  const list = document.getElementById("checklistList");
+  const summary = document.getElementById("checklistSummary");
+  const activeItems = activeChecklistItems({ ...delivery, checklist });
+  const completed = activeItems.filter((item) => Number(item.completed)).length;
+  const total = activeItems.length;
+
+  summary.textContent = total
+    ? `${completed} of ${total} tasks complete`
+    : "No checklist tasks";
+
+  list.innerHTML = activeItems
+    .map(
+      (item) => `
+        <label class="checklist-item">
+          <input
+            type="checkbox"
+            ${Number(item.completed) ? "checked" : ""}
+            onchange="setChecklistItemStatus(${item.id}, this.checked)"
+          />
+          <span>${escapeHtml(item.label)}</span>
+          ${item.raw_value ? `<em>${escapeHtml(item.raw_value)}</em>` : ""}
+        </label>
+      `
+    )
+    .join("");
+}
+
+async function setChecklistItemStatus(id, completed) {
+  const response = await fetch(`/api/checklist/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ completed })
+  });
+
+  if (!response.ok) {
+    alert("Checklist item did not save.");
+    return;
+  }
+
+  const deliveryId = document.getElementById("deliveryId").value;
+  await loadDeliveries();
+  calendar.refetchEvents();
+  if (deliveryId) await openDelivery(deliveryId);
 }
 
 function closeDrawer() {

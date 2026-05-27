@@ -209,6 +209,9 @@ body {
   display: grid;
   gap: 4px;
   width: 100%;
+  max-width: calc(100vw - 56px);
+  min-width: 0;
+  overflow: hidden;
   border: 1px solid #cbd5e1;
   border-left: 6px solid var(--driver-color, #64748b);
   border-radius: 8px;
@@ -235,6 +238,7 @@ body {
 .week-delivery span {
   min-width: 0;
   overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .week-delivery-time {
@@ -725,9 +729,19 @@ fieldset input {
 
 .delivery-row-main {
   display: grid;
-  grid-template-columns: 140px minmax(180px, 1fr) 160px minmax(180px, 1fr) 150px 170px;
+  grid-template-columns: minmax(220px, 1.4fr) minmax(220px, 1fr) 130px 130px 170px;
   gap: 10px;
   align-items: center;
+}
+
+.list-entry-primary {
+  display: grid;
+  gap: 4px;
+}
+
+.list-entry-primary span {
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .delivery-row:hover {
@@ -825,6 +839,64 @@ fieldset input {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.checklist-panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.checklist-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.checklist-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.checklist-header span {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.checklist-list {
+  display: grid;
+  gap: 8px;
+}
+
+.checklist-item {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 36px;
+  font-size: 13px;
+}
+
+.checklist-item input {
+  width: 16px;
+  height: 16px;
+  min-height: 0;
+  margin: 0;
+}
+
+.checklist-item span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.checklist-item em {
+  color: #64748b;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
 }
 
 .danger-btn {
@@ -928,9 +1000,12 @@ fieldset input {
     z-index: 20;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    justify-content: start;
     gap: 6px;
-    width: 100%;
-    max-width: none;
+    width: min(100vw, 390px);
+    max-width: 100vw;
+    min-width: 0;
+    overflow: hidden;
     padding: 8px 12px;
     background: #fff;
     border-bottom: 1px solid #e5e7eb;
@@ -938,6 +1013,7 @@ fieldset input {
 
   .mobile-view-button {
     min-width: 0;
+    max-width: 100%;
     min-height: 42px;
     border: 1px solid #cbd5e1;
     background: #f8fafc;
