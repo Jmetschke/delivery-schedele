@@ -151,47 +151,6 @@ db.serialize(() => {
     )
   `);
 
-  db.all("PRAGMA table_info(deliveries)", (err, columns) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-
-    const existingColumns = new Set(columns.map((column) => column.name));
-    const additions = [
-      ["border_store", "TEXT"],
-      ["needs_display", "TEXT"],
-      ["date_order_received", "TEXT"],
-      ["product_type", "TEXT"],
-      ["delivery_type", "TEXT"],
-      ["delivery_date", "TEXT"],
-      ["pickup_time", "TEXT"],
-      ["delivery_time", "TEXT"],
-      ["drivers", "TEXT"],
-      ["van", "TEXT"],
-      ["status", "TEXT DEFAULT 'Not Started'"],
-      ["notes", "TEXT DEFAULT ''"],
-      ["source_sheet", "TEXT"],
-      ["created_at", "TEXT"],
-      ["updated_at", "TEXT"],
-      ["dispensary_location", "TEXT"],
-      ["dispensary_address", "TEXT"],
-      ["companies_delivering", "TEXT"],
-      ["delivery_company", "TEXT"],
-      ["driver_id_number", "TEXT"],
-      ["license_plate", "TEXT"],
-      ["delivered", "INTEGER DEFAULT 0"],
-      ["delivered_at", "TEXT"],
-      ["order_ready_to_ship", "INTEGER DEFAULT 0"]
-    ];
-
-    additions.forEach(([name, type]) => {
-      if (!existingColumns.has(name)) {
-        db.run(`ALTER TABLE deliveries ADD COLUMN ${name} ${type}`);
-      }
-    });
-  });
-
   db.run(`
     CREATE TABLE IF NOT EXISTS delivery_checklist (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

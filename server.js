@@ -42,6 +42,33 @@ const LICENSE_PLATE_BY_VAN = {
   "Toyota Corolla": "EL90538"
 };
 
+const DELIVERY_COLUMN_ADDITIONS = [
+  ["border_store", "TEXT"],
+  ["needs_display", "TEXT"],
+  ["date_order_received", "TEXT"],
+  ["product_type", "TEXT"],
+  ["delivery_type", "TEXT"],
+  ["delivery_date", "TEXT"],
+  ["pickup_time", "TEXT"],
+  ["delivery_time", "TEXT"],
+  ["drivers", "TEXT"],
+  ["van", "TEXT"],
+  ["status", "TEXT DEFAULT 'Not Started'"],
+  ["notes", "TEXT DEFAULT ''"],
+  ["source_sheet", "TEXT"],
+  ["created_at", "TEXT"],
+  ["updated_at", "TEXT"],
+  ["dispensary_location", "TEXT"],
+  ["dispensary_address", "TEXT"],
+  ["companies_delivering", "TEXT"],
+  ["delivery_company", "TEXT"],
+  ["driver_id_number", "TEXT"],
+  ["license_plate", "TEXT"],
+  ["delivered", "INTEGER DEFAULT 0"],
+  ["delivered_at", "TEXT"],
+  ["order_ready_to_ship", "INTEGER DEFAULT 0"]
+];
+
 const CHECKLIST_COLUMNS = [
   {
     key: "order_folder_dropbox",
@@ -295,6 +322,17 @@ function all(sql, params = []) {
   return new Promise((resolve, reject) => {
     db.all(sql, params, (err, rows) => (err ? reject(err) : resolve(rows)));
   });
+}
+
+async function ensureDeliveryColumns() {
+  const columns = await all("PRAGMA table_info(deliveries)");
+  const existingColumns = new Set(columns.map((column) => column.name));
+
+  for (const [name, type] of DELIVERY_COLUMN_ADDITIONS) {
+    if (!existingColumns.has(name)) {
+      await run(`ALTER TABLE deliveries ADD COLUMN ${name} ${type}`);
+    }
+  }
 }
 
 function selectedCompanies(value) {
@@ -1061,6 +1099,8 @@ app.post("/api/import", upload.single("schedule"), async (req, res) => {
       return res.status(400).json({ error: "No spreadsheet uploaded" });
     }
 
+    await ensureDeliveryColumns();
+
     const workbook = XLSX.readFile(req.file.path, { cellDates: true });
     const sheetName =
       workbook.SheetNames.find((name) => name.toUpperCase() === "ORDERS TO DELIVER") ||
@@ -1182,6 +1222,7 @@ app.post("/api/import", upload.single("schedule"), async (req, res) => {
 
 app.listen(PORT, async () => {
   try {
+    await ensureDeliveryColumns();
     await syncChecklistDefinitions();
   } catch (err) {
     console.error("Unable to sync checklist definitions", err);
