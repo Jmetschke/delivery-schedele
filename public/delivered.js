@@ -21,6 +21,14 @@ function formatDeliveredDate(value) {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
 }
 
+function isDeliveryConfirmed(delivery) {
+  const item = (delivery.checklist || []).find(
+    (checklistItem) => checklistItem.item_key === "delivery_confirmed"
+  );
+
+  return Number(item?.completed);
+}
+
 async function loadDeliveredOrders() {
   const response = await fetch("/api/deliveries?delivered=1");
   const deliveries = await response.json();
@@ -54,7 +62,7 @@ async function loadDeliveredOrders() {
         .join(" / ");
 
       return `
-        <article class="delivery-row delivered-order">
+        <article class="delivery-row delivered-order ${isDeliveryConfirmed(delivery) ? "" : "unconfirmed-delivery-entry"}">
           <div class="delivery-row-main">
             <div>${escapeHtml(schedule)}</div>
             <div><strong>${escapeHtml(delivery.store)}</strong><br>${escapeHtml(delivery.dispensary_location || delivery.dispensary_address || "")}</div>

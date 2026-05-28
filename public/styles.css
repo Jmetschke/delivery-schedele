@@ -132,12 +132,24 @@ body {
   font-weight: 700;
 }
 
-.week-header > strong {
+.week-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.week-header-actions > strong {
   border-radius: 8px;
   background: #dbeafe;
   color: #1e40af;
   padding: 7px 10px;
   white-space: nowrap;
+}
+
+.week-header-actions button {
+  min-height: 34px;
+  padding: 7px 10px;
 }
 
 .week-schedule {
@@ -332,6 +344,12 @@ body {
   font-size: 12px;
   font-style: normal;
   font-weight: 800;
+}
+
+.unscheduled-order.unconfirmed-delivery-entry {
+  border-color: #dc2626;
+  border-left-color: #dc2626;
+  box-shadow: inset 0 0 0 2px #dc2626;
 }
 
 #calendar {
@@ -739,6 +757,12 @@ fieldset input {
   opacity: 0.78;
 }
 
+.delivery-row.unconfirmed-delivery-entry {
+  border-color: #dc2626;
+  border-left-color: #dc2626;
+  box-shadow: inset 0 0 0 2px #dc2626;
+}
+
 .delivery-row-main {
   display: grid;
   grid-template-columns: minmax(220px, 1.4fr) minmax(220px, 1fr) 130px 130px 170px;
@@ -1093,7 +1117,13 @@ fieldset input {
     font-size: 22px;
   }
 
-  .week-header > strong,
+  .week-header-actions {
+    display: grid;
+    justify-content: stretch;
+  }
+
+  .week-header-actions > strong,
+  .week-header-actions button,
   .list-header select {
     width: 100%;
     max-width: none;

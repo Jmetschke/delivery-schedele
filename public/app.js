@@ -203,6 +203,7 @@ function setupHandlers() {
   document.getElementById("newDeliveryForm").addEventListener("submit", createDelivery);
   document.getElementById("spreadsheetImportForm").addEventListener("submit", importSpreadsheet);
   document.getElementById("statusFilter").addEventListener("change", renderDeliveryList);
+  document.getElementById("printCalendar").addEventListener("click", openPrintableCalendar);
   document.getElementById("closeDrawer").addEventListener("click", closeDrawer);
   document.getElementById("deliveryForm").addEventListener("submit", saveDelivery);
   document.getElementById("deleteDelivery").addEventListener("click", deleteDelivery);
@@ -518,11 +519,10 @@ function startOfCurrentWeek() {
   return start;
 }
 
-function startOfUpcomingCalendar() {
+function startOfRollingCalendar() {
   const today = new Date();
-  const start = startOfCurrentWeek();
-
-  return today.getDay() === 6 ? addDays(start, 7) : start;
+  today.setHours(0, 0, 0, 0);
+  return today;
 }
 
 function addDays(date, days) {
@@ -542,12 +542,17 @@ function formatWeekDate(date, options) {
   return date.toLocaleDateString(undefined, options);
 }
 
+function openPrintableCalendar() {
+  const start = isoDate(startOfRollingCalendar());
+  window.open(`/print.html?start=${encodeURIComponent(start)}`, "_blank", "noopener");
+}
+
 function renderWeekSchedule() {
   const schedule = document.getElementById("weekSchedule");
   const title = document.getElementById("weekTitle");
   const range = document.getElementById("weekRange");
   const count = document.getElementById("weekCount");
-  const start = startOfUpcomingCalendar();
+  const start = startOfRollingCalendar();
   const days = Array.from({ length: 7 }, (_, index) => addDays(start, index));
   const end = days[6];
   const todayIso = isoDate(new Date());
@@ -562,7 +567,7 @@ function renderWeekSchedule() {
   }, {});
   const weekDeliveries = Object.values(dayDeliveriesByDate).flat();
 
-  title.textContent = todayIso >= startIso && todayIso <= endIso ? "Current Week" : "Upcoming Week";
+  title.textContent = "Next 7 Days";
   range.textContent = `${formatWeekDate(start, {
     month: "short",
     day: "numeric"
@@ -688,7 +693,7 @@ function renderUnscheduledOrders() {
   list.innerHTML = unscheduled
     .map(
       (delivery) => `
-        <button class="unscheduled-order ${driverColorClass(delivery.drivers)}" type="button" onclick="openDelivery(${delivery.id})">
+        <button class="unscheduled-order ${driverColorClass(delivery.drivers)} ${isDeliveryConfirmed(delivery) ? "" : "unconfirmed-delivery-entry"}" type="button" onclick="openDelivery(${delivery.id})">
           <strong>${escapeHtml(delivery.store)}</strong>
           <span>${escapeHtml(delivery.dispensary_location || delivery.dispensary_address || "")}</span>
           <span>${escapeHtml([delivery.delivery_company, delivery.drivers ? `Driver: ${delivery.drivers}` : "", delivery.van ? `Van: ${delivery.van}` : ""].filter(Boolean).join(" / "))}</span>
@@ -723,7 +728,7 @@ function renderDeliveryList() {
           : "";
 
       return `
-        <div class="delivery-row ${driverColorClass(delivery.drivers)} ${Number(delivery.delivered) ? "delivered-delivery-row" : ""}" onclick="openDelivery(${delivery.id})">
+        <div class="delivery-row ${driverColorClass(delivery.drivers)} ${Number(delivery.delivered) ? "delivered-delivery-row" : ""} ${isDeliveryConfirmed(delivery) ? "" : "unconfirmed-delivery-entry"}" onclick="openDelivery(${delivery.id})">
           <div class="delivery-row-main">
             <div class="list-entry-primary">
               <strong>${escapeHtml(delivery.store)}</strong>
