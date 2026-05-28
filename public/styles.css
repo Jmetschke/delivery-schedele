@@ -234,6 +234,12 @@ body {
   opacity: 0.72;
 }
 
+.week-delivery.unconfirmed-week-delivery {
+  border-color: #dc2626;
+  border-left-color: #dc2626;
+  box-shadow: inset 0 0 0 2px #dc2626;
+}
+
 .week-delivery strong,
 .week-delivery span {
   min-width: 0;
@@ -526,6 +532,12 @@ body {
   box-shadow: inset 0 0 0 2px #10b981;
 }
 
+#calendar .fc-event.unconfirmed-calendar-event,
+#calendar .fc-daygrid-dot-event.unconfirmed-calendar-event {
+  border-color: #dc2626;
+  box-shadow: inset 0 0 0 2px #dc2626;
+}
+
 #calendar .fc-event.delivered-calendar-event,
 #calendar .fc-daygrid-dot-event.delivered-calendar-event {
   background: #e5e7eb;
@@ -778,6 +790,7 @@ fieldset input {
   color: #1e40af;
 }
 
+.badge.ready,
 .badge.completed {
   background: #dcfce7;
   color: #166534;

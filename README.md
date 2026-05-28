@@ -9,7 +9,7 @@ This is a starter app for manually entering dispensary deliveries into a calenda
 - Shows deliveries on a calendar
 - Shows deliveries in a separate list
 - Lets you open a delivery and check off preparation steps
-- Automatically marks deliveries as in progress when checklist work starts and completed when all checklist items are done
+- Automatically marks deliveries as in progress when checklist work starts and ready for delivery when all required checklist items are done and delivery is confirmed
 - Lets you edit delivery details, status, and notes
 
 ## Setup

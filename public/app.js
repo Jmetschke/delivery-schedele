@@ -83,6 +83,10 @@ function setupCalendar() {
         classes.push("order-ready-calendar-event");
       }
 
+      if (!Number(info.event.extendedProps.delivery_confirmed)) {
+        classes.push("unconfirmed-calendar-event");
+      }
+
       return classes;
     },
     eventContent(info) {
@@ -144,7 +148,7 @@ function renderCalendarEvent(event) {
   if (Number(props.order_ready_to_ship)) {
     const ready = document.createElement("span");
     ready.className = "calendar-ready-status";
-    ready.textContent = "Ready to ship";
+    ready.textContent = "Ready for delivery";
     wrapper.appendChild(ready);
   }
 
@@ -187,24 +191,6 @@ async function setDeliveredStatus(id, delivered) {
 
   if (!response.ok) {
     alert("Delivered status did not save.");
-    calendar.refetchEvents();
-    return;
-  }
-
-  await loadDeliveries();
-  calendar.refetchEvents();
-}
-
-async function setOrderReadyStatus(id, orderReady) {
-  const response = await fetch(`/api/deliveries/${id}/order-ready`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ order_ready_to_ship: orderReady })
-  });
-
-  if (!response.ok) {
-    alert("Order ready status did not save.");
-    await loadDeliveries();
     calendar.refetchEvents();
     return;
   }
@@ -518,8 +504,8 @@ function renderSummary() {
   document.getElementById("inProgressCount").textContent = deliveries.filter(
     (d) => d.status === "In Progress"
   ).length;
-  document.getElementById("completedCount").textContent = deliveries.filter(
-    (d) => d.status === "Completed"
+  document.getElementById("readyCount").textContent = deliveries.filter(
+    (d) => d.status === "Ready For Delivery"
   ).length;
 }
 
@@ -628,8 +614,8 @@ function renderWeekSchedule() {
 
 function renderWeekDelivery(delivery) {
   const badgeClass =
-    delivery.status === "Completed"
-      ? "completed"
+    delivery.status === "Ready For Delivery"
+      ? "ready"
       : delivery.status === "In Progress"
         ? "in-progress"
         : "";
@@ -654,7 +640,8 @@ function renderWeekDelivery(delivery) {
     "week-delivery",
     driverColorClass(delivery.drivers),
     Number(delivery.delivered) ? "delivered-week-delivery" : "",
-    Number(delivery.order_ready_to_ship) ? "order-ready-week-delivery" : ""
+    Number(delivery.order_ready_to_ship) ? "order-ready-week-delivery" : "",
+    isDeliveryConfirmed(delivery) ? "" : "unconfirmed-week-delivery"
   ]
     .filter(Boolean)
     .join(" ");
@@ -664,7 +651,7 @@ function renderWeekDelivery(delivery) {
       <strong>${escapeHtml(delivery.store)}</strong>
       <span class="week-delivery-time">${escapeHtml(lineOne.join(" | "))}</span>
       <span>${escapeHtml(lineTwo.join(" | "))}</span>
-      ${Number(delivery.order_ready_to_ship) ? '<span class="ready-label">Ready to ship</span>' : ""}
+      ${Number(delivery.order_ready_to_ship) ? '<span class="ready-label">Ready for delivery</span>' : ""}
       <span class="badge ${badgeClass}">${escapeHtml(delivery.status || "Not Started")}</span>
     </button>
   `;
@@ -729,8 +716,8 @@ function renderDeliveryList() {
   list.innerHTML = visible
     .map((delivery) => {
       const badgeClass =
-        delivery.status === "Completed"
-          ? "completed"
+        delivery.status === "Ready For Delivery"
+          ? "ready"
           : delivery.status === "In Progress"
             ? "in-progress"
           : "";
@@ -750,14 +737,6 @@ function renderDeliveryList() {
             <div>${escapeHtml([delivery.delivery_company || "Company TBD", delivery.drivers ? `Driver: ${delivery.drivers}` : "Driver TBD", delivery.driver_id_number ? `ID: ${delivery.driver_id_number}` : "", delivery.van ? `Van: ${delivery.van}` : "Van TBD", delivery.license_plate ? `Plate: ${delivery.license_plate}` : ""].filter(Boolean).join(" / "))}</div>
             <div>${escapeHtml(deliveryCompletionSummary(delivery))}</div>
             <div><span class="badge ${badgeClass}">${escapeHtml(delivery.status || "Not Started")}</span></div>
-            <label class="ready-toggle" onclick="event.stopPropagation()">
-              <input
-                type="checkbox"
-                ${Number(delivery.order_ready_to_ship) ? "checked" : ""}
-                onchange="setOrderReadyStatus(${delivery.id}, this.checked)"
-              />
-              <span>Order ready to ship</span>
-            </label>
           </div>
         </div>
       `;
@@ -793,11 +772,15 @@ function deliveryCompletionSummary(delivery) {
 }
 
 function deliveryConfirmedSummary(delivery) {
+  return isDeliveryConfirmed(delivery) ? "Confirmed: Yes" : "Confirmed: No";
+}
+
+function isDeliveryConfirmed(delivery) {
   const item = (delivery.checklist || []).find(
     (checklistItem) => checklistItem.item_key === "delivery_confirmed"
   );
 
-  return Number(item?.completed) ? "Confirmed: Yes" : "Confirmed: No";
+  return Number(item?.completed);
 }
 
 function compareDeliveryListRows(a, b) {

@@ -315,18 +315,8 @@ function hasValue(value) {
   return String(value || "").trim().length > 0;
 }
 
-function hasRequiredDeliveryFields(delivery) {
-  return [
-    delivery.store,
-    delivery.companies_delivering,
-    delivery.delivery_company,
-    delivery.drivers,
-    delivery.van
-  ].every(hasValue);
-}
-
-function statusForRequiredFields(delivery) {
-  return hasRequiredDeliveryFields(delivery) ? "Completed" : "Not Started";
+function initialDeliveryStatus() {
+  return "Not Started";
 }
 
 async function updateDeliveryStatusFromChecklist(deliveryId) {
@@ -343,18 +333,20 @@ async function updateDeliveryStatusFromChecklist(deliveryId) {
   );
   const totalCount = activeItems.length;
   const completedCount = activeItems.filter((item) => item.completed).length;
+  const deliveryConfirmed = activeItems.some(
+    (item) => item.item_key === "delivery_confirmed" && item.completed
+  );
   const hasStartedChecklist = activeItems.some(
     (item) => item.completed || isProgressChecklistValue(item.raw_value)
   );
   const checklistComplete = totalCount > 0 && completedCount === totalCount;
-  const requiredFieldsComplete = hasRequiredDeliveryFields(delivery);
-  const status =
-    checklistComplete && requiredFieldsComplete
-      ? "Completed"
-      : hasStartedChecklist
-        ? "In Progress"
-        : "Not Started";
-  const orderReady = checklistComplete && requiredFieldsComplete ? 1 : delivery.order_ready_to_ship;
+  const readyForDelivery = checklistComplete && deliveryConfirmed;
+  const status = readyForDelivery
+    ? "Ready For Delivery"
+    : hasStartedChecklist
+      ? "In Progress"
+      : "Not Started";
+  const orderReady = readyForDelivery ? 1 : 0;
 
   await run(
     `UPDATE deliveries SET status = ?, order_ready_to_ship = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
@@ -365,7 +357,7 @@ async function updateDeliveryStatusFromChecklist(deliveryId) {
     status,
     total_count: totalCount,
     completed_count: completedCount,
-    required_fields_complete: requiredFieldsComplete
+    delivery_confirmed: deliveryConfirmed
   };
 }
 
@@ -491,7 +483,7 @@ async function insertOrUpdateDelivery(delivery, checklistItems = [], options = {
         delivery.driver_id_number,
         delivery.van,
         delivery.license_plate,
-        statusForRequiredFields(delivery),
+        initialDeliveryStatus(),
         delivery.delivered ?? null,
         delivery.delivered ?? null,
         delivery.delivered ?? null,
@@ -531,7 +523,7 @@ async function insertOrUpdateDelivery(delivery, checklistItems = [], options = {
         delivery.license_plate,
         delivery.delivered ? 1 : 0,
         delivery.delivered ? new Date().toISOString() : null,
-        statusForRequiredFields(delivery),
+        initialDeliveryStatus(),
         delivery.source_sheet
       ]
     );
@@ -623,6 +615,8 @@ async function syncChecklistDefinitions() {
     await run("DELETE FROM delivery_checklist WHERE delivery_id = ? AND item_key = 'sb_labels'", [
       delivery.id
     ]);
+
+    await updateDeliveryStatusFromChecklist(delivery.id);
   }
 }
 
@@ -707,13 +701,17 @@ app.get("/api/calendar-events", async (req, res) => {
   try {
     const rows = await all(
       `
-        SELECT id, store, delivery_date, pickup_time, delivery_time,
-               delivery_company, drivers, van, companies_delivering, status,
-               delivered, order_ready_to_ship
-        FROM deliveries
-        WHERE delivery_date IS NOT NULL AND delivery_date != ''
-          AND delivery_time IS NOT NULL AND delivery_time != ''
-        ORDER BY delivery_date, delivery_time
+        SELECT d.id, d.store, d.delivery_date, d.pickup_time, d.delivery_time,
+               d.delivery_company, d.drivers, d.van, d.companies_delivering, d.status,
+               d.delivered, d.order_ready_to_ship,
+               COALESCE(confirmed.completed, 0) AS delivery_confirmed
+        FROM deliveries d
+        LEFT JOIN delivery_checklist confirmed
+          ON confirmed.delivery_id = d.id
+         AND confirmed.item_key = 'delivery_confirmed'
+        WHERE d.delivery_date IS NOT NULL AND d.delivery_date != ''
+          AND d.delivery_time IS NOT NULL AND d.delivery_time != ''
+        ORDER BY d.delivery_date, d.delivery_time
       `
     );
 
@@ -744,7 +742,8 @@ app.get("/api/calendar-events", async (req, res) => {
         companies_delivering: row.companies_delivering,
         status: row.status,
         delivered: row.delivered,
-        order_ready_to_ship: row.order_ready_to_ship
+        order_ready_to_ship: row.order_ready_to_ship,
+        delivery_confirmed: row.delivery_confirmed
       }
     }));
 
@@ -807,7 +806,7 @@ app.post("/api/deliveries", async (req, res) => {
       drivers,
       van
     };
-    const status = statusForRequiredFields(delivery);
+    const status = initialDeliveryStatus();
 
     const result = await run(
       `
@@ -876,13 +875,7 @@ app.patch("/api/deliveries/:id", async (req, res) => {
       notes
     } = req.body;
 
-    const status = statusForRequiredFields({
-      store,
-      companies_delivering,
-      delivery_company,
-      drivers,
-      van
-    });
+    const status = initialDeliveryStatus();
 
     await run(
       `
@@ -919,6 +912,8 @@ app.patch("/api/deliveries/:id", async (req, res) => {
       ]
     );
 
+    await updateDeliveryStatusFromChecklist(req.params.id);
+
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
@@ -954,23 +949,18 @@ app.patch("/api/deliveries/:id/delivered", async (req, res) => {
 
 app.patch("/api/deliveries/:id/order-ready", async (req, res) => {
   try {
-    const orderReady = req.body.order_ready_to_ship ? 1 : 0;
     const delivery = await get("SELECT id FROM deliveries WHERE id = ?", [req.params.id]);
 
     if (!delivery) {
       return res.status(404).json({ error: "Delivery not found" });
     }
 
-    await run(
-      `
-        UPDATE deliveries
-        SET order_ready_to_ship = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `,
-      [orderReady, req.params.id]
-    );
+    await updateDeliveryStatusFromChecklist(req.params.id);
+    const updated = await get("SELECT order_ready_to_ship FROM deliveries WHERE id = ?", [
+      req.params.id
+    ]);
 
-    res.json({ ok: true, order_ready_to_ship: Boolean(orderReady) });
+    res.json({ ok: true, order_ready_to_ship: Boolean(updated?.order_ready_to_ship) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Unable to save order ready status" });
