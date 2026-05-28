@@ -159,6 +159,21 @@ db.serialize(() => {
 
     const existingColumns = new Set(columns.map((column) => column.name));
     const additions = [
+      ["border_store", "TEXT"],
+      ["needs_display", "TEXT"],
+      ["date_order_received", "TEXT"],
+      ["product_type", "TEXT"],
+      ["delivery_type", "TEXT"],
+      ["delivery_date", "TEXT"],
+      ["pickup_time", "TEXT"],
+      ["delivery_time", "TEXT"],
+      ["drivers", "TEXT"],
+      ["van", "TEXT"],
+      ["status", "TEXT DEFAULT 'Not Started'"],
+      ["notes", "TEXT DEFAULT ''"],
+      ["source_sheet", "TEXT"],
+      ["created_at", "TEXT"],
+      ["updated_at", "TEXT"],
       ["dispensary_location", "TEXT"],
       ["dispensary_address", "TEXT"],
       ["companies_delivering", "TEXT"],
