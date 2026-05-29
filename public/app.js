@@ -473,15 +473,24 @@ async function importSpreadsheet(event) {
 
   result.textContent = "Uploading spreadsheet...";
 
-  const formData = new FormData(form);
-  const response = await fetch("/api/import", {
-    method: "POST",
-    body: formData
-  });
-  const data = await response.json();
+  let response;
+  let data;
+
+  try {
+    const formData = new FormData(form);
+    response = await fetch("/api/import", {
+      method: "POST",
+      body: formData
+    });
+    data = await response.json();
+  } catch (err) {
+    result.textContent = "Spreadsheet import failed. Please try again.";
+    return;
+  }
 
   if (!response.ok) {
-    result.textContent = data.error || "Spreadsheet import failed.";
+    const detail = data.detail ? ` ${data.detail}` : "";
+    result.textContent = `${data.error || "Spreadsheet import failed."}${detail}`;
     return;
   }
 

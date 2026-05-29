@@ -7,7 +7,12 @@ const db = require("./db");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const upload = multer({ dest: path.join(__dirname, "uploads") });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024
+  }
+});
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
@@ -472,6 +477,31 @@ async function findImportMatch(delivery, importStartDate) {
   );
 }
 
+async function findDeliveredUniqueConflict(delivery) {
+  if (
+    !hasValue(delivery.store) ||
+    !hasValue(delivery.delivery_date) ||
+    !hasValue(delivery.delivery_time) ||
+    !hasValue(delivery.drivers)
+  ) {
+    return null;
+  }
+
+  return get(
+    `
+      SELECT id FROM deliveries
+      WHERE store = ?
+        AND delivery_date = ?
+        AND delivery_time = ?
+        AND drivers = ?
+        AND COALESCE(delivered, 0) = 1
+      ORDER BY id
+      LIMIT 1
+    `,
+    [delivery.store, delivery.delivery_date, delivery.delivery_time, delivery.drivers]
+  );
+}
+
 async function insertOrUpdateDelivery(delivery, checklistItems = [], options = {}) {
   const existingDeliveries = await findImportMatch(delivery, options.importStartDate);
   let deliveryId;
@@ -531,6 +561,12 @@ async function insertOrUpdateDelivery(delivery, checklistItems = [], options = {
     );
 
   } else {
+    const deliveredConflict = await findDeliveredUniqueConflict(delivery);
+
+    if (deliveredConflict) {
+      return { deliveryId: deliveredConflict.id, skippedDeliveredConflict: true };
+    }
+
     const result = await run(
       `
         INSERT INTO deliveries (
@@ -586,7 +622,7 @@ async function insertOrUpdateDelivery(delivery, checklistItems = [], options = {
     await updateDeliveryStatusFromChecklist(deliveryId);
   }
 
-  return deliveryId;
+  return { deliveryId, skippedDeliveredConflict: false };
 }
 
 app.get("/api/health", (req, res) => {
@@ -1101,7 +1137,7 @@ app.post("/api/import", upload.single("schedule"), async (req, res) => {
 
     await ensureDeliveryColumns();
 
-    const workbook = XLSX.readFile(req.file.path, { cellDates: true });
+    const workbook = XLSX.read(req.file.buffer, { cellDates: true, type: "buffer" });
     const sheetName =
       workbook.SheetNames.find((name) => name.toUpperCase() === "ORDERS TO DELIVER") ||
       workbook.SheetNames[0];
@@ -1203,8 +1239,15 @@ app.post("/api/import", upload.single("schedule"), async (req, res) => {
       : null;
 
     for (const entry of spreadsheetDeliveries.values()) {
-      await insertOrUpdateDelivery(entry.delivery, entry.checklistItems, { importStartDate });
-      imported += 1;
+      const importResult = await insertOrUpdateDelivery(entry.delivery, entry.checklistItems, {
+        importStartDate
+      });
+
+      if (importResult.skippedDeliveredConflict) {
+        skipped += 1;
+      } else {
+        imported += 1;
+      }
     }
 
     res.json({
@@ -1216,7 +1259,10 @@ app.post("/api/import", upload.single("schedule"), async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Import failed. Check the spreadsheet format." });
+    res.status(500).json({
+      error: "Import failed. Check the spreadsheet format.",
+      detail: err.message
+    });
   }
 });
 
