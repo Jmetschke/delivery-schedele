@@ -67,6 +67,20 @@ function setupCalendar() {
       }
     },
     eventSources: ["/api/calendar-events"],
+    eventOrder(a, b) {
+      return compareDriverTimeStore(
+        {
+          drivers: a.extendedProps.drivers,
+          delivery_time: a.extendedProps.delivery_time,
+          store: a.extendedProps.store
+        },
+        {
+          drivers: b.extendedProps.drivers,
+          delivery_time: b.extendedProps.delivery_time,
+          store: b.extendedProps.store
+        }
+      );
+    },
     eventClassNames(info) {
       const classes = [driverColorClass(info.event.extendedProps.drivers)];
       const day = info.event.start?.getDay();
@@ -364,14 +378,21 @@ function timeSortValue(value) {
   return hour * 60 + minutes;
 }
 
-function compareWeekDeliveries(a, b) {
+function compareDriverTimeStore(a, b) {
   const driverCompare = String(a.drivers || "")
     .trim()
     .localeCompare(String(b.drivers || "").trim(), undefined, { sensitivity: "base" });
 
   if (driverCompare !== 0) return driverCompare;
 
-  return timeSortValue(a.delivery_time) - timeSortValue(b.delivery_time);
+  return (
+    timeSortValue(a.delivery_time) - timeSortValue(b.delivery_time) ||
+    String(a.store || "").localeCompare(String(b.store || ""), undefined, { sensitivity: "base" })
+  );
+}
+
+function compareWeekDeliveries(a, b) {
+  return compareDriverTimeStore(a, b);
 }
 
 function selectedCheckboxValues(name) {
@@ -805,8 +826,7 @@ function compareDeliveryListRows(a, b) {
 
   return (
     String(a.delivery_date || "").localeCompare(String(b.delivery_date || "")) ||
-    timeSortValue(a.delivery_time) - timeSortValue(b.delivery_time) ||
-    String(a.store || "").localeCompare(String(b.store || ""), undefined, { sensitivity: "base" })
+    compareDriverTimeStore(a, b)
   );
 }
 

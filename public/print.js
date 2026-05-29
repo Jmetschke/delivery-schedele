@@ -38,7 +38,10 @@ function formatDate(date, options) {
 }
 
 function timeSortValue(value) {
-  const normalized = String(value || "").trim().toUpperCase();
+  const normalized = String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/^(\d{1,2})\s*(AM|PM)$/, "$1:00 $2");
   const match = normalized.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
 
   if (!match) return Number.MAX_SAFE_INTEGER;
@@ -51,6 +54,19 @@ function timeSortValue(value) {
   }
 
   return hour * 60 + minutes;
+}
+
+function compareDriverTimeStore(a, b) {
+  const driverCompare = String(a.drivers || "")
+    .trim()
+    .localeCompare(String(b.drivers || "").trim(), undefined, { sensitivity: "base" });
+
+  if (driverCompare !== 0) return driverCompare;
+
+  return (
+    timeSortValue(a.delivery_time) - timeSortValue(b.delivery_time) ||
+    String(a.store || "").localeCompare(String(b.store || ""), undefined, { sensitivity: "base" })
+  );
 }
 
 function isScheduledDelivery(delivery) {
@@ -145,7 +161,7 @@ function renderPrintWeek(days, deliveries) {
     const dayIso = isoDate(day);
     acc[dayIso] = deliveries
       .filter((delivery) => isScheduledDelivery(delivery) && delivery.delivery_date === dayIso)
-      .sort((a, b) => timeSortValue(a.delivery_time) - timeSortValue(b.delivery_time));
+      .sort(compareDriverTimeStore);
     return acc;
   }, {});
   const gridColumns = days

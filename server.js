@@ -277,6 +277,37 @@ function deliveryDuplicateKey(delivery) {
   return [store, deliveryDate, normalizeCell(delivery.delivery_time)].join("|");
 }
 
+function deliveryTimeSortValue(value) {
+  const normalized = normalizeCell(value)
+    .toUpperCase()
+    .replace(/^(\d{1,2})\s*(AM|PM)$/, "$1:00 $2");
+  const match = normalized.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+
+  if (!match) return Number.MAX_SAFE_INTEGER;
+
+  let hour = Number(match[1]) % 12;
+  const minutes = Number(match[2]);
+
+  if (match[3].toUpperCase() === "PM") {
+    hour += 12;
+  }
+
+  return hour * 60 + minutes;
+}
+
+function compareDeliveriesByDriverTime(a, b) {
+  const driverCompare = normalizeCell(a.drivers).localeCompare(normalizeCell(b.drivers), undefined, {
+    sensitivity: "base"
+  });
+
+  if (driverCompare !== 0) return driverCompare;
+
+  return (
+    deliveryTimeSortValue(a.delivery_time) - deliveryTimeSortValue(b.delivery_time) ||
+    normalizeCell(a.store).localeCompare(normalizeCell(b.store), undefined, { sensitivity: "base" })
+  );
+}
+
 function storeKey(value) {
   return normalizeCell(value).replace(/\s+/g, " ").toUpperCase();
 }
@@ -766,11 +797,20 @@ app.get("/api/deliveries", async (req, res) => {
         ORDER BY
           CASE WHEN delivery_date IS NULL OR delivery_date = '' THEN 1 ELSE 0 END,
           delivery_date,
+          drivers,
           delivery_time,
           store
       `,
       params
-    ));
+    )).sort((a, b) => {
+      const aHasDate = hasValue(a.delivery_date);
+      const bHasDate = hasValue(b.delivery_date);
+
+      if (aHasDate !== bHasDate) return aHasDate ? -1 : 1;
+
+      return normalizeCell(a.delivery_date).localeCompare(normalizeCell(b.delivery_date)) ||
+        compareDeliveriesByDriverTime(a, b);
+    });
 
     if (!rows.length) {
       return res.json([]);
@@ -807,7 +847,7 @@ app.get("/api/deliveries", async (req, res) => {
 
 app.get("/api/calendar-events", async (req, res) => {
   try {
-    const rows = await all(
+    const rows = (await all(
       `
         SELECT d.id, d.store, d.delivery_date, d.pickup_time, d.delivery_time,
                d.delivery_company, d.drivers, d.van, d.companies_delivering, d.status,
@@ -819,8 +859,11 @@ app.get("/api/calendar-events", async (req, res) => {
          AND confirmed.item_key = 'delivery_confirmed'
         WHERE d.delivery_date IS NOT NULL AND d.delivery_date != ''
           AND d.delivery_time IS NOT NULL AND d.delivery_time != ''
-        ORDER BY d.delivery_date, d.delivery_time
+        ORDER BY d.delivery_date, d.drivers, d.delivery_time, d.store
       `
+    )).sort((a, b) =>
+      normalizeCell(a.delivery_date).localeCompare(normalizeCell(b.delivery_date)) ||
+      compareDeliveriesByDriverTime(a, b)
     );
 
     function calendarTitle(row) {
