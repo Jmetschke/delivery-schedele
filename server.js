@@ -477,29 +477,63 @@ async function findImportMatch(delivery, importStartDate) {
   );
 }
 
-async function findDeliveredUniqueConflict(delivery) {
-  if (
-    !hasValue(delivery.store) ||
-    !hasValue(delivery.delivery_date) ||
-    !hasValue(delivery.delivery_time) ||
-    !hasValue(delivery.drivers)
-  ) {
-    return null;
+async function findDeliveredImportMatch(delivery, importStartDate) {
+  const hasDeliveryDate = hasValue(delivery.delivery_date);
+  const candidateDeliveries = hasDeliveryDate
+    ? await all(
+        `
+          SELECT id, store, delivery_date, delivery_time FROM deliveries
+          WHERE delivery_date = ?
+            AND COALESCE(delivered, 0) = 1
+          ORDER BY id
+        `,
+        [delivery.delivery_date]
+      )
+    : await all(
+        `
+          SELECT id, store, delivery_date, delivery_time FROM deliveries
+          WHERE store = ? AND delivery_date = ? AND delivery_time = ?
+            AND COALESCE(delivered, 0) = 1
+          ORDER BY id
+        `,
+        [delivery.store, delivery.delivery_date, delivery.delivery_time]
+      );
+  const deliveryKey = deliveryDuplicateKey(delivery);
+  const exactMatch = candidateDeliveries.find(
+    (candidate) => deliveryDuplicateKey(candidate) === deliveryKey
+  );
+
+  if (exactMatch || !importStartDate) {
+    return exactMatch || null;
   }
 
-  return get(
+  const normalizedStore = storeKey(delivery.store);
+
+  if (hasDeliveryDate && !deliveryIsBeforeImportWindow(delivery, importStartDate)) {
+    return (
+      candidateDeliveries.find(
+        (candidate) =>
+          storeKey(candidate.store) === normalizedStore &&
+          !deliveryIsBeforeImportWindow(candidate, importStartDate)
+      ) || null
+    );
+  }
+
+  const unscheduledMatch = await get(
     `
-      SELECT id FROM deliveries
+      SELECT id, store, delivery_date, delivery_time FROM deliveries
       WHERE store = ?
-        AND delivery_date = ?
-        AND delivery_time = ?
-        AND drivers = ?
+        AND (delivery_date IS NULL OR delivery_date = '')
         AND COALESCE(delivered, 0) = 1
       ORDER BY id
       LIMIT 1
     `,
-    [delivery.store, delivery.delivery_date, delivery.delivery_time, delivery.drivers]
+    [delivery.store]
   );
+
+  return unscheduledMatch && storeKey(unscheduledMatch.store) === normalizedStore
+    ? unscheduledMatch
+    : null;
 }
 
 async function insertOrUpdateDelivery(delivery, checklistItems = [], options = {}) {
@@ -561,7 +595,7 @@ async function insertOrUpdateDelivery(delivery, checklistItems = [], options = {
     );
 
   } else {
-    const deliveredConflict = await findDeliveredUniqueConflict(delivery);
+    const deliveredConflict = await findDeliveredImportMatch(delivery, options.importStartDate);
 
     if (deliveredConflict) {
       return { deliveryId: deliveredConflict.id, skippedDeliveredConflict: true };
