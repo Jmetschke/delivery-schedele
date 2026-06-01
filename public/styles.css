@@ -363,7 +363,7 @@ body {
 
 #calendar .fc-scrollgrid-sync-table,
 #calendar .fc-col-header {
-  table-layout: auto;
+  table-layout: fixed;
 }
 
 #calendar .fc-day-sun,

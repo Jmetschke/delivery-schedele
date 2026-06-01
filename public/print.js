@@ -165,7 +165,12 @@ function renderPrintWeek(days, deliveries) {
     return acc;
   }, {});
   const gridColumns = days
-    .map((day) => (day.getDay() === 0 || day.getDay() === 6 ? "minmax(0.55in, 0.55fr)" : "minmax(0, 1fr)"))
+    .map((day) => {
+      const dayIso = isoDate(day);
+      const hasDeliveries = grouped[dayIso].length > 0;
+      const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+      return isWeekend && !hasDeliveries ? "minmax(0.55in, 0.55fr)" : "minmax(0, 1fr)";
+    })
     .join(" ");
 
   return `
