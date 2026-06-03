@@ -722,6 +722,50 @@ async function insertOrUpdateDelivery(delivery, checklistItems = [], options = {
   return { deliveryId, skippedDeliveredConflict: false };
 }
 
+async function deleteDeliveriesMissingFromImport(importStartDate, importedDeliveryIds) {
+  const protectedIds = Array.from(new Set(importedDeliveryIds.filter(Boolean)));
+
+  if (!importStartDate && !protectedIds.length) return 0;
+
+  const missingFromImportConditions = [
+    "(delivery_date IS NULL OR delivery_date = '' OR delivery_time IS NULL OR delivery_time = '')"
+  ];
+  const params = [];
+
+  if (importStartDate) {
+    missingFromImportConditions.push("delivery_date > ?");
+    params.push(importStartDate);
+  }
+
+  const protectedClause = protectedIds.length
+    ? `AND id NOT IN (${protectedIds.map(() => "?").join(",")})`
+    : "";
+  params.push(...protectedIds);
+
+  const missingDeliveries = await all(
+    `
+      SELECT id
+      FROM deliveries
+      WHERE (${missingFromImportConditions.join(" OR ")})
+        AND COALESCE(delivered, 0) = 0
+        AND source_sheet IS NOT NULL
+        AND source_sheet != ''
+        ${protectedClause}
+    `,
+    params
+  );
+
+  if (!missingDeliveries.length) return 0;
+
+  const ids = missingDeliveries.map((delivery) => delivery.id);
+  const placeholders = ids.map(() => "?").join(",");
+
+  await run(`DELETE FROM delivery_checklist WHERE delivery_id IN (${placeholders})`, ids);
+  const result = await run(`DELETE FROM deliveries WHERE id IN (${placeholders})`, ids);
+
+  return result.changes || ids.length;
+}
+
 app.get("/api/health", (req, res) => {
   res.json({ ok: true, message: "Delivery Calendar app is running" });
 });
@@ -1355,6 +1399,7 @@ app.post("/api/import", upload.single("schedule"), async (req, res) => {
     const importStartDate = spreadsheetDates.length
       ? spreadsheetDates.sort()[0]
       : null;
+    const importedDeliveryIds = [];
 
     for (const entry of spreadsheetDeliveries.values()) {
       const importResult = await insertOrUpdateDelivery(entry.delivery, entry.checklistItems, {
@@ -1364,16 +1409,25 @@ app.post("/api/import", upload.single("schedule"), async (req, res) => {
       if (importResult.skippedDeliveredConflict) {
         skipped += 1;
       } else {
+        importedDeliveryIds.push(importResult.deliveryId);
         imported += 1;
       }
     }
+
+    const deletedMissing = await deleteDeliveriesMissingFromImport(
+      importStartDate,
+      importedDeliveryIds
+    );
 
     res.json({
       ok: true,
       sheetName,
       imported,
       skipped,
-      message: `Imported ${imported} deliveries from ${sheetName}`
+      deletedMissing,
+      message: `Imported ${imported} deliveries from ${sheetName}${
+        deletedMissing ? ` and removed ${deletedMissing} deliveries missing from the upload` : ""
+      }`
     });
   } catch (err) {
     console.error(err);
