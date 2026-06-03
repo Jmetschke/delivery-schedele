@@ -97,12 +97,12 @@ const CHECKLIST_COLUMNS = [
   },
   {
     key: "sb_labels_printed",
-    label: "SB labels printed",
+    label: "SB sealing printed",
     spreadsheetHeader: "SB LABELS PRINTED?       APPLIED?"
   },
   {
     key: "sb_labels_applied",
-    label: "SB labels applied",
+    label: "SB sealing applied",
     spreadsheetHeader: "SB LABELS PRINTED?       APPLIED?"
   },
   {
@@ -112,7 +112,7 @@ const CHECKLIST_COLUMNS = [
   },
   {
     key: "products_labeled",
-    label: "Products labeled",
+    label: "Sealing",
     spreadsheetHeader: "PRODUCTS LABELED?"
   },
   {
@@ -380,9 +380,43 @@ function selectedCompanies(value) {
   );
 }
 
-function isChecklistItemActive(itemKey, companiesDelivering) {
-  if (!["sb_labels_printed", "sb_labels_applied"].includes(itemKey)) return true;
-  return selectedCompanies(companiesDelivering).has("SB");
+function normalizedProductText(value) {
+  return String(value || "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+}
+
+function deliveryHasVapes(productType) {
+  const text = normalizedProductText(productType);
+  return /\b(VAPE|VAPES|CART|CARTS|CARTRIDGE|CARTRIDGES)\b/.test(text);
+}
+
+function deliveryHasRegularSealing(productType) {
+  const text = normalizedProductText(productType);
+  if (!text) return false;
+
+  return text.split(/\s*(?:,|\/|\+|&|;|\bAND\b)\s*/).some((product) => {
+    if (/\b(SHOOTER|SHOOTERS)\b/.test(product)) return false;
+
+    return (
+      /\b(1\s*PKS?|1\s*PACKS?|ONE\s*PACKS?|2\s*PKS?|2\s*PACKS?|TWO\s*PACKS?)\b/.test(product) ||
+      /\b(WHOOPIE|WHOOPIES|TINCTURE|TINCTURES)\b/.test(product)
+    );
+  });
+}
+
+function isChecklistItemActive(itemKey, delivery) {
+  if (["sb_labels_printed", "sb_labels_applied"].includes(itemKey)) {
+    return deliveryHasVapes(delivery.product_type);
+  }
+
+  if (itemKey === "products_labeled") {
+    return deliveryHasRegularSealing(delivery.product_type);
+  }
+
+  return true;
 }
 
 function hasValue(value) {
@@ -402,9 +436,7 @@ async function updateDeliveryStatusFromChecklist(deliveryId) {
     "SELECT item_key, completed, raw_value FROM delivery_checklist WHERE delivery_id = ?",
     [deliveryId]
   );
-  const activeItems = checklistItems.filter((item) =>
-    isChecklistItemActive(item.item_key, delivery.companies_delivering)
-  );
+  const activeItems = checklistItems.filter((item) => isChecklistItemActive(item.item_key, delivery));
   const totalCount = activeItems.length;
   const completedCount = activeItems.filter((item) => item.completed).length;
   const deliveryConfirmed = activeItems.some(
@@ -677,7 +709,7 @@ async function insertOrUpdateDelivery(delivery, checklistItems = [], options = {
         INSERT INTO delivery_checklist (delivery_id, item_key, label, completed, raw_value)
         VALUES (?, ?, ?, ?, ?)
         ON CONFLICT(delivery_id, item_key)
-        DO UPDATE SET completed = excluded.completed, raw_value = excluded.raw_value
+        DO UPDATE SET label = excluded.label, completed = excluded.completed, raw_value = excluded.raw_value
       `,
       [deliveryId, item.key, item.label, item.completed, item.raw_value]
     );
@@ -1180,7 +1212,7 @@ app.patch("/api/deliveries/:id/checklist/check-all", async (req, res) => {
       [req.params.id]
     );
     const activeIds = checklistItems
-      .filter((item) => isChecklistItemActive(item.item_key, delivery.companies_delivering))
+      .filter((item) => isChecklistItemActive(item.item_key, delivery))
       .map((item) => item.id);
 
     if (activeIds.length) {
@@ -1257,6 +1289,15 @@ app.post("/api/import", upload.single("schedule"), async (req, res) => {
         "Hijnx/ Pheotera/ Snackbar",
         "Hijnx/ Pheotera/ Snackbar "
       ]);
+      const productType = normalizeCell(getFirstValue(row, headerMap, [
+        "Product Type",
+        "Product Types",
+        "Product",
+        "Products",
+        "Items",
+        "Item Type",
+        "Items Ordered"
+      ])) || normalizeCell(companyCodes);
       const drivers = normalizeMappedName(getValue(row, headerMap, "DRIVERS"), DRIVER_ID_BY_NAME);
       const van = normalizeMappedName(getValue(row, headerMap, "VAN"), LICENSE_PLATE_BY_VAN);
       const deliveryConfirmedRaw = getValue(row, headerMap, "DELIVERY CONFIRMED?");
@@ -1273,7 +1314,7 @@ app.post("/api/import", upload.single("schedule"), async (req, res) => {
           "NEEDS DISPLAYS"
         ])),
         date_order_received: excelDateToISO(getValue(row, headerMap, "DATE ORDER RECEIVED")),
-        product_type: normalizeCell(companyCodes),
+        product_type: productType,
         delivery_company: normalizeCell(getFirstValue(row, headerMap, [
           "EO Deliveries or Other",
           "EO DELIVERY OR OTHER?"

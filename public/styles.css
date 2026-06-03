@@ -353,51 +353,22 @@ body {
 }
 
 #calendar {
-  --weekend-calendar-column: 56px;
   min-width: 820px;
+}
+
+#calendar .fc-scrollgrid-sync-table,
+#calendar .fc-col-header {
+  table-layout: fixed;
+  width: 100% !important;
 }
 
 #calendar .fc-daygrid-day-frame {
   min-height: 132px;
 }
 
-#calendar .fc-scrollgrid-sync-table,
-#calendar .fc-col-header {
-  table-layout: fixed;
-}
-
-#calendar .fc-day-sun,
-#calendar .fc-day-sat {
-  width: var(--weekend-calendar-column);
-  max-width: var(--weekend-calendar-column);
-}
-
 #calendar .fc-daygrid-day.fc-day-sun:not(.fc-day-today),
 #calendar .fc-daygrid-day.fc-day-sat:not(.fc-day-today) {
   background: #f3f4f6;
-}
-
-#calendar .fc-daygrid-day.fc-day-sun .fc-daygrid-day-frame,
-#calendar .fc-daygrid-day.fc-day-sat .fc-daygrid-day-frame {
-  min-height: 132px;
-  padding: 2px;
-}
-
-#calendar .fc-day-sun .fc-col-header-cell-cushion,
-#calendar .fc-day-sat .fc-col-header-cell-cushion {
-  font-size: 11px;
-  padding-inline: 2px;
-}
-
-#calendar .fc-daygrid-day.fc-day-sun .fc-daygrid-day-top,
-#calendar .fc-daygrid-day.fc-day-sat .fc-daygrid-day-top {
-  justify-content: center;
-}
-
-#calendar .fc-daygrid-day.fc-day-sun .fc-daygrid-day-number,
-#calendar .fc-daygrid-day.fc-day-sat .fc-daygrid-day-number {
-  font-size: 11px;
-  padding: 2px;
 }
 
 #calendar .fc-daygrid-event,

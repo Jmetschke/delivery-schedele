@@ -780,16 +780,43 @@ function renderDeliveryList() {
 }
 
 function activeChecklistItems(delivery) {
-  const selectedCompanies = new Set(
-    String(delivery.companies_delivering || "")
-      .split(",")
-      .map((company) => company.trim().toUpperCase())
-      .filter(Boolean)
-  );
-
   return (delivery.checklist || []).filter((item) => {
-    if (!["sb_labels_printed", "sb_labels_applied"].includes(item.item_key)) return true;
-    return selectedCompanies.has("SB");
+    if (["sb_labels_printed", "sb_labels_applied"].includes(item.item_key)) {
+      return deliveryHasVapes(delivery.product_type);
+    }
+
+    if (item.item_key === "products_labeled") {
+      return deliveryHasRegularSealing(delivery.product_type);
+    }
+
+    return true;
+  });
+}
+
+function normalizedProductText(value) {
+  return String(value || "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+}
+
+function deliveryHasVapes(productType) {
+  const text = normalizedProductText(productType);
+  return /\b(VAPE|VAPES|CART|CARTS|CARTRIDGE|CARTRIDGES)\b/.test(text);
+}
+
+function deliveryHasRegularSealing(productType) {
+  const text = normalizedProductText(productType);
+  if (!text) return false;
+
+  return text.split(/\s*(?:,|\/|\+|&|;|\bAND\b)\s*/).some((product) => {
+    if (/\b(SHOOTER|SHOOTERS)\b/.test(product)) return false;
+
+    return (
+      /\b(1\s*PKS?|1\s*PACKS?|ONE\s*PACKS?|2\s*PKS?|2\s*PACKS?|TWO\s*PACKS?)\b/.test(product) ||
+      /\b(WHOOPIE|WHOOPIES|TINCTURE|TINCTURES)\b/.test(product)
+    );
   });
 }
 
