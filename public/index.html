@@ -242,7 +242,65 @@
     </section>
 
     <section class="panel entry-panel mobile-view-section" data-mobile-section="entry">
-      <h2>New Delivery</h2>
+      <div class="entry-panel-header">
+        <h2>New Delivery</h2>
+        <button id="openNewDeliveryModal" type="button">Add Delivery</button>
+      </div>
+
+      <form id="spreadsheetImportForm" class="spreadsheet-import-form">
+        <label>Upload Spreadsheet
+          <input id="spreadsheetImportFile" type="file" name="schedule" accept=".xlsx,.xls,.csv" required />
+        </label>
+        <button type="submit">Upload</button>
+      </form>
+      <p id="spreadsheetImportResult" class="message"></p>
+
+      <div class="summary">
+        <div>
+          <strong id="totalCount">0</strong>
+          <span>Total</span>
+        </div>
+        <div>
+          <strong id="inProgressCount">0</strong>
+          <span>In Progress</span>
+        </div>
+        <div>
+          <strong id="readyCount">0</strong>
+          <span>Ready For Delivery</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="calendar-card mobile-view-section" data-mobile-section="calendar">
+      <div id="calendar"></div>
+    </section>
+
+    <section class="panel unscheduled-panel mobile-view-section" data-mobile-section="calendar list">
+      <h2>Orders To Be Scheduled</h2>
+      <div id="unscheduledList" class="unscheduled-list"></div>
+    </section>
+
+    <section class="panel list-panel mobile-view-section" data-mobile-section="list">
+      <div class="list-header">
+        <h2>Delivery List</h2>
+        <select id="statusFilter">
+          <option value="">All Statuses</option>
+          <option>Not Started</option>
+          <option>In Progress</option>
+          <option>Ready For Delivery</option>
+        </select>
+      </div>
+      <div id="deliveryList" class="delivery-list"></div>
+    </section>
+  </main>
+
+  <div id="newDeliveryModal" class="modal-backdrop" hidden>
+    <section class="modal-window" role="dialog" aria-modal="true" aria-labelledby="newDeliveryModalTitle">
+      <div class="modal-header">
+        <h2 id="newDeliveryModalTitle">Add Delivery</h2>
+        <button id="closeNewDeliveryModal" class="secondary-btn modal-close-button" type="button" aria-label="Close add delivery window">Close</button>
+      </div>
+
       <form id="newDeliveryForm" class="new-delivery-form">
         <label>Delivery Date
           <input id="newDeliveryDate" type="date" />
@@ -303,56 +361,14 @@
           <input id="newDateOrderReceived" type="date" />
         </label>
 
-        <button class="wide-field" type="submit">Add Delivery</button>
+        <div class="new-delivery-actions wide-field">
+          <button class="secondary-btn" type="button" data-close-new-delivery>Cancel</button>
+          <button type="submit">Add Delivery</button>
+        </div>
       </form>
       <p id="newDeliveryResult" class="message"></p>
-
-      <form id="spreadsheetImportForm" class="spreadsheet-import-form">
-        <label>Upload Spreadsheet
-          <input id="spreadsheetImportFile" type="file" name="schedule" accept=".xlsx,.xls,.csv" required />
-        </label>
-        <button type="submit">Upload</button>
-      </form>
-      <p id="spreadsheetImportResult" class="message"></p>
-
-      <div class="summary">
-        <div>
-          <strong id="totalCount">0</strong>
-          <span>Total</span>
-        </div>
-        <div>
-          <strong id="inProgressCount">0</strong>
-          <span>In Progress</span>
-        </div>
-        <div>
-          <strong id="readyCount">0</strong>
-          <span>Ready For Delivery</span>
-        </div>
-      </div>
     </section>
-
-    <section class="calendar-card mobile-view-section" data-mobile-section="calendar">
-      <div id="calendar"></div>
-    </section>
-
-    <section class="panel unscheduled-panel mobile-view-section" data-mobile-section="calendar list">
-      <h2>Orders To Be Scheduled</h2>
-      <div id="unscheduledList" class="unscheduled-list"></div>
-    </section>
-
-    <section class="panel list-panel mobile-view-section" data-mobile-section="list">
-      <div class="list-header">
-        <h2>Delivery List</h2>
-        <select id="statusFilter">
-          <option value="">All Statuses</option>
-          <option>Not Started</option>
-          <option>In Progress</option>
-          <option>Ready For Delivery</option>
-        </select>
-      </div>
-      <div id="deliveryList" class="delivery-list"></div>
-    </section>
-  </main>
+  </div>
 
   <aside id="drawer" class="drawer" aria-hidden="true">
     <div class="drawer-content">

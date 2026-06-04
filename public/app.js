@@ -215,6 +215,7 @@ async function setDeliveredStatus(id, delivered) {
 
 function setupHandlers() {
   document.getElementById("newDeliveryForm").addEventListener("submit", createDelivery);
+  setupNewDeliveryModal();
   document.getElementById("spreadsheetImportForm").addEventListener("submit", importSpreadsheet);
   document.getElementById("statusFilter").addEventListener("change", renderDeliveryList);
   document.getElementById("printCalendar").addEventListener("click", openPrintableCalendar);
@@ -227,6 +228,46 @@ function setupHandlers() {
   bindLicensePlateAutofill("deliveryVan", "licensePlate");
   bindTimeAutofill(["newDeliveryTime", "newPickupTime", "deliveryTime", "pickupTime"]);
   setupMobileViewSwitcher();
+}
+
+function setupNewDeliveryModal() {
+  const modal = document.getElementById("newDeliveryModal");
+  const openButton = document.getElementById("openNewDeliveryModal");
+  const closeButtons = [
+    document.getElementById("closeNewDeliveryModal"),
+    ...document.querySelectorAll("[data-close-new-delivery]")
+  ];
+
+  openButton.addEventListener("click", openNewDeliveryModal);
+
+  closeButtons.forEach((button) => {
+    button.addEventListener("click", closeNewDeliveryModal);
+  });
+
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) closeNewDeliveryModal();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !modal.hidden) {
+      closeNewDeliveryModal();
+    }
+  });
+}
+
+function openNewDeliveryModal() {
+  const modal = document.getElementById("newDeliveryModal");
+  modal.hidden = false;
+  document.body.classList.add("modal-open");
+  document.getElementById("newDeliveryResult").textContent = "";
+  document.getElementById("newDeliveryDate").focus();
+}
+
+function closeNewDeliveryModal() {
+  const modal = document.getElementById("newDeliveryModal");
+  modal.hidden = true;
+  document.body.classList.remove("modal-open");
+  document.getElementById("openNewDeliveryModal").focus();
 }
 
 function setupMobileViewSwitcher() {
@@ -476,6 +517,7 @@ async function createDelivery(event) {
 
   result.textContent = "Delivery added.";
   form.reset();
+  closeNewDeliveryModal();
   await loadDeliveries();
   calendar.refetchEvents();
 }

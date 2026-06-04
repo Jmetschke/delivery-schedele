@@ -9,6 +9,10 @@ body {
   color: #1f2937;
 }
 
+body.modal-open {
+  overflow: hidden;
+}
+
 .topbar {
   display: flex;
   align-items: center;
@@ -86,12 +90,29 @@ body {
   grid-column: 1 / -1;
 }
 
+.entry-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.entry-panel-header h2 {
+  margin: 0;
+}
+
 .new-delivery-form {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .new-delivery-form .wide-field {
   grid-column: span 2;
+}
+
+.new-delivery-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .spreadsheet-import-form {
@@ -573,6 +594,48 @@ button:hover {
   background: #1d4ed8;
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  background: rgba(17, 24, 39, 0.55);
+  padding: 20px;
+}
+
+.modal-backdrop[hidden] {
+  display: none;
+}
+
+.modal-window {
+  display: grid;
+  gap: 14px;
+  width: min(1040px, 100%);
+  max-height: min(86vh, 820px);
+  overflow: auto;
+  border-radius: 8px;
+  background: #fff;
+  padding: 18px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal-header h2 {
+  margin: 0;
+}
+
+.modal-close-button {
+  min-width: 86px;
+}
+
 input,
 select,
 textarea {
@@ -968,6 +1031,10 @@ fieldset input {
   .new-delivery-form .wide-field {
     grid-column: auto;
   }
+
+  .new-delivery-actions {
+    display: grid;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1060,6 +1127,20 @@ fieldset input {
   .list-panel h2 {
     margin-top: 0;
     font-size: 20px;
+  }
+
+  .entry-panel-header {
+    display: grid;
+  }
+
+  .modal-backdrop {
+    align-items: stretch;
+    padding: 10px;
+  }
+
+  .modal-window {
+    max-height: calc(100vh - 20px);
+    padding: 14px;
   }
 
   .unscheduled-panel {
