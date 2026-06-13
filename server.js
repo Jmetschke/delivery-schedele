@@ -427,6 +427,49 @@ function initialDeliveryStatus() {
   return "Not Started";
 }
 
+function localDateISO(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function pastUnconfirmedDeliveryClause() {
+  return `
+    d.delivery_date IS NOT NULL AND d.delivery_date != ''
+    AND d.delivery_time IS NOT NULL AND d.delivery_time != ''
+    AND d.delivery_date < ?
+    AND COALESCE(confirmed.completed, 0) = 0
+  `;
+}
+
+async function reconcilePastDeliveries() {
+  const today = localDateISO();
+
+  await run(
+    `
+      UPDATE deliveries
+      SET delivered = 1,
+          delivered_at = COALESCE(delivered_at, CURRENT_TIMESTAMP),
+          updated_at = CURRENT_TIMESTAMP
+      WHERE COALESCE(delivered, 0) = 0
+        AND delivery_date IS NOT NULL AND delivery_date != ''
+        AND delivery_time IS NOT NULL AND delivery_time != ''
+        AND delivery_date < ?
+        AND EXISTS (
+          SELECT 1
+          FROM delivery_checklist
+          WHERE delivery_checklist.delivery_id = deliveries.id
+            AND delivery_checklist.item_key = 'delivery_confirmed'
+            AND COALESCE(delivery_checklist.completed, 0) = 1
+        )
+    `,
+    [today]
+  );
+
+  return today;
+}
+
 async function updateDeliveryStatusFromChecklist(deliveryId) {
   const delivery = await get("SELECT * FROM deliveries WHERE id = ?", [deliveryId]);
 
@@ -837,45 +880,52 @@ async function syncChecklistDefinitions() {
 
 app.get("/api/deliveries", async (req, res) => {
   try {
+    const today = await reconcilePastDeliveries();
     const { date, status, driver, delivered } = req.query;
 
     const filters = [];
     const params = [];
 
     if (date) {
-      filters.push("delivery_date = ?");
+      filters.push("d.delivery_date = ?");
       params.push(date);
     }
 
     if (status) {
-      filters.push("status = ?");
+      filters.push("d.status = ?");
       params.push(status);
     }
 
     if (driver) {
-      filters.push("drivers LIKE ?");
+      filters.push("d.drivers LIKE ?");
       params.push(`%${driver}%`);
     }
 
     if (delivered !== undefined) {
-      filters.push("COALESCE(delivered, 0) = ?");
+      filters.push("COALESCE(d.delivered, 0) = ?");
       params.push(delivered === "1" || delivered === "true" ? 1 : 0);
     } else {
-      filters.push("COALESCE(delivered, 0) = 0");
+      filters.push("COALESCE(d.delivered, 0) = 0");
+      filters.push(`NOT (${pastUnconfirmedDeliveryClause()})`);
+      params.push(today);
     }
 
     const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
     const rows = dedupeDeliveryRows(await all(
       `
-        SELECT * FROM deliveries
+        SELECT d.*
+        FROM deliveries d
+        LEFT JOIN delivery_checklist confirmed
+          ON confirmed.delivery_id = d.id
+         AND confirmed.item_key = 'delivery_confirmed'
         ${where}
         ORDER BY
-          CASE WHEN delivery_date IS NULL OR delivery_date = '' THEN 1 ELSE 0 END,
-          delivery_date,
-          drivers,
-          delivery_time,
-          store
+          CASE WHEN d.delivery_date IS NULL OR d.delivery_date = '' THEN 1 ELSE 0 END,
+          d.delivery_date,
+          d.drivers,
+          d.delivery_time,
+          d.store
       `,
       params
     )).sort((a, b) => {
@@ -923,6 +973,8 @@ app.get("/api/deliveries", async (req, res) => {
 
 app.get("/api/calendar-events", async (req, res) => {
   try {
+    await reconcilePastDeliveries();
+
     const rows = (await all(
       `
         SELECT d.id, d.store, d.delivery_date, d.pickup_time, d.delivery_time,
@@ -1418,6 +1470,7 @@ app.post("/api/import", upload.single("schedule"), async (req, res) => {
       importStartDate,
       importedDeliveryIds
     );
+    await reconcilePastDeliveries();
 
     res.json({
       ok: true,
@@ -1442,6 +1495,7 @@ app.listen(PORT, async () => {
   try {
     await ensureDeliveryColumns();
     await syncChecklistDefinitions();
+    await reconcilePastDeliveries();
   } catch (err) {
     console.error("Unable to sync checklist definitions", err);
   }
